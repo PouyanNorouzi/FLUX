@@ -11,6 +11,7 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import StepRow from '$lib/components/StepRow.svelte';
 	import TagEditor from '$lib/components/TagEditor.svelte';
+	import UnitInput from '$lib/components/UnitInput.svelte';
 	import {
 		FRIENDLY_ACTION_MESSAGES,
 		getNetworkErrorMessage,
@@ -368,12 +369,12 @@
 								>
 									UNIT
 								</label>
-								<input
+								<UnitInput
 									id="newIngredientUnit"
-									type="text"
-									placeholder="CUP"
-									bind:value={newIngredient.unit}
-									class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
+									value={newIngredient.unit}
+									onChange={(value) => {
+										newIngredient.unit = value;
+									}}
 								/>
 							</div>
 

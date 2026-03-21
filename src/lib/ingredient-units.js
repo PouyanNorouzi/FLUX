@@ -1,0 +1,19 @@
+export const INGREDIENT_UNIT_SUGGESTIONS = [
+	'COUNT',
+	'CUP',
+	'CUPS',
+	'TSP',
+	'TBSP',
+	'OUNCE',
+	'OUNCES',
+	'POUND',
+	'POUNDS',
+	'CLOVE',
+	'CLOVES',
+	'SPRIG',
+	'SPRIGS',
+	'HEAD',
+	'HEADS',
+	'CAN',
+	'CANS'
+];

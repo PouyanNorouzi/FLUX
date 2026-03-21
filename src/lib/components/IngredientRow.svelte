@@ -1,4 +1,6 @@
 <script>
+	import UnitInput from '$lib/components/UnitInput.svelte';
+
 	/**
 	 * @type {{
 	 *   ingredient: { id: string, quantity: string, unit: string, name: string, note?: string },
@@ -45,17 +47,11 @@
 		>
 			UNIT
 		</label>
-		<input
+		<UnitInput
 			id={`ingredient_${ingredient.id ?? index}_unit`}
-			type="text"
-			placeholder="CUP"
 			value={ingredient.unit}
-			oninput={(event) => onChange('unit', event.currentTarget.value)}
-			class={`brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm uppercase outline-none ${
-				errors.unit
-					? 'border-molten-commit-orange focus:border-molten-commit-orange'
-					: 'focus:border-molten-commit-orange'
-			}`}
+			hasError={!!errors.unit}
+			onChange={(value) => onChange('unit', value)}
 		/>
 		{#if errors.unit}
 			<p class="mt-1 text-[10px] text-molten-commit-orange">{errors.unit}</p>
