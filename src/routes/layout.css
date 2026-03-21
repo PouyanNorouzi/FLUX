@@ -153,6 +153,11 @@
 		cursor: crosshair;
 	}
 
+	.data-row:hover > * {
+		color: var(--color-cold-console-white);
+		opacity: 1;
+	}
+
 	.data-row:hover .tag-badge {
 		border-color: var(--color-cold-console-white);
 		color: var(--color-cold-console-white);
