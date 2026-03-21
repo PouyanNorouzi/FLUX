@@ -497,6 +497,36 @@ export class InMemoryRecipeRepository {
 		return getRecipeDetail(id);
 	}
 
+	/**
+	 * Return a RecipeCreateInput-shaped object for pre-populating the edit form.
+	 * @param {string} id
+	 * @returns {import('../recipe-repository').RecipeCreateInput | null}
+	 */
+	getEditData(id) {
+		const raw = this.store.find((r) => r.flux_id.toLowerCase() === id.toLowerCase());
+		if (!raw) return null;
+		return {
+			title: raw.title,
+			yieldLabel: raw.yield_label,
+			timeMinutes: String(raw.time_minutes),
+			tags: [...raw.tag_codes],
+			systemFlags: [...raw.sys_flags],
+			ingredients: raw.ingredients.map((ing) => ({
+				quantity: ing.qty,
+				unit: ing.unit,
+				name: ing.name,
+				note: ing.note ?? ''
+			})),
+			steps: raw.steps.map((instruction) => ({ instruction })),
+			parserMetadata: {
+				recordBytes: String(raw.parse_trace.record_bytes),
+				checksumHex: raw.parse_trace.checksum_hex,
+				structName: raw.parse_trace.struct_name,
+				fieldCount: String(raw.parse_trace.field_count)
+			}
+		};
+	}
+
 	getStats() {
 		return getVaultStats();
 	}
@@ -541,6 +571,58 @@ export class InMemoryRecipeRepository {
 			success: true,
 			id: fluxId
 		};
+	}
+
+	/**
+	 * Update an existing recipe in the in-memory store.
+	 * @param {string} id
+	 * @param {import('../recipe-repository').RecipeCreateInput} input
+	 * @returns {import('../recipe-repository').RecipeUpdateResult}
+	 */
+	update(id, input) {
+		const idx = this.store.findIndex((r) => r.flux_id.toLowerCase() === id.toLowerCase());
+		if (idx === -1) {
+			return { success: false, error: 'RECORD_NOT_FOUND' };
+		}
+
+		this.store[idx] = {
+			...this.store[idx],
+			title: input.title,
+			tag_codes: input.tags,
+			modified_hex: generateModifiedHex(),
+			yield_label: input.yieldLabel,
+			time_minutes: Number(input.timeMinutes),
+			sys_flags: input.systemFlags,
+			ingredients: input.ingredients.map((row) => ({
+				qty: row.quantity,
+				unit: row.unit,
+				name: row.name,
+				note: row.note || undefined
+			})),
+			steps: input.steps.map((row) => row.instruction),
+			parse_trace: {
+				record_bytes: Number(input.parserMetadata.recordBytes) || 256,
+				checksum_hex: input.parserMetadata.checksumHex || '0x000000',
+				struct_name: input.parserMetadata.structName || 'recipe_record_v2',
+				field_count: Number(input.parserMetadata.fieldCount) || 10
+			}
+		};
+
+		return { success: true, id };
+	}
+
+	/**
+	 * Delete a recipe from the in-memory store.
+	 * @param {string} id
+	 * @returns {import('../recipe-repository').RecipeDeleteResult}
+	 */
+	delete(id) {
+		const idx = this.store.findIndex((r) => r.flux_id.toLowerCase() === id.toLowerCase());
+		if (idx === -1) {
+			return { success: false, error: 'RECORD_NOT_FOUND' };
+		}
+		this.store.splice(idx, 1);
+		return { success: true };
 	}
 }
 

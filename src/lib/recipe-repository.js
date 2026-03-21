@@ -54,6 +54,22 @@
  */
 
 /**
+ * @typedef {{
+ * 	success: boolean,
+ * 	id?: string,
+ * 	error?: string,
+ * 	errors?: Record<string, string>
+ * }} RecipeUpdateResult
+ */
+
+/**
+ * @typedef {{
+ * 	success: boolean,
+ * 	error?: string
+ * }} RecipeDeleteResult
+ */
+
+/**
  * Recipe Repository
  * Abstracts persistence and read/write operations.
  */
@@ -91,6 +107,27 @@ export class RecipeRepository {
 	 */
 	// eslint-disable-next-line no-unused-vars
 	create(_input) {
+		throw new Error('Not implemented');
+	}
+
+	/**
+	 * Update an existing recipe by ID.
+	 * @param {string} _id
+	 * @param {RecipeCreateInput} _input
+	 * @returns {RecipeUpdateResult}
+	 */
+	// eslint-disable-next-line no-unused-vars
+	update(_id, _input) {
+		throw new Error('Not implemented');
+	}
+
+	/**
+	 * Delete a recipe by ID.
+	 * @param {string} _id
+	 * @returns {RecipeDeleteResult}
+	 */
+	// eslint-disable-next-line no-unused-vars
+	delete(_id) {
 		throw new Error('Not implemented');
 	}
 }

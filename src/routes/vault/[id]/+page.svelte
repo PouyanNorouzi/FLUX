@@ -1,6 +1,7 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { toastStore } from '$lib/stores/toast.js';
 
 	let { data } = $props();
 
@@ -19,6 +20,35 @@
 
 	function returnToIndex() {
 		goto(resolve('/vault'));
+	}
+
+	let showDeleteModal = $state(false);
+	let deleteLoading = $state(false);
+
+	async function confirmDelete() {
+		if (!recipe) return;
+		deleteLoading = true;
+		try {
+			const formData = new FormData();
+			const response = await fetch('?/delete', {
+				method: 'POST',
+				body: formData
+			});
+			const result = await response.json();
+			if (result.data?.success) {
+				toastStore.pushSuccessToast(`RECORD ${recipe.id} PURGED FROM POUDB`);
+				await goto(resolve('/vault'));
+			} else {
+				toastStore.pushErrorToast(`DELETE FAILED: ${result.data?.error ?? 'UNKNOWN_ERROR'}`);
+				deleteLoading = false;
+				showDeleteModal = false;
+			}
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : 'UNKNOWN_ERROR';
+			toastStore.pushErrorToast(`NETWORK ERROR: ${msg}`);
+			deleteLoading = false;
+			showDeleteModal = false;
+		}
 	}
 </script>
 
@@ -226,10 +256,8 @@
 		<div class="fixed right-4 bottom-4 z-50 flex flex-col gap-3 sm:right-6 sm:bottom-6 sm:flex-row">
 			<button
 				type="button"
-				disabled
-				aria-disabled="true"
-				title="Edit is unavailable until backend implementation is complete"
-				class="brutalist-border bg-cold-console-white px-6 py-3 font-display text-lg font-bold uppercase opacity-55 shadow-hard"
+				onclick={() => goto(resolve(`/vault/${recipe.id}/edit`))}
+				class="brutalist-border bg-cold-console-white px-6 py-3 font-display text-lg font-bold uppercase shadow-hard transition-colors hover:bg-signal-black hover:text-cold-console-white"
 			>
 				<span class="flex items-center gap-2">
 					<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;"
@@ -240,10 +268,8 @@
 			</button>
 			<button
 				type="button"
-				disabled
-				aria-disabled="true"
-				title="Delete is unavailable until backend implementation is complete"
-				class="brutalist-border bg-molten-commit-orange px-6 py-3 font-display text-lg font-bold uppercase opacity-55 shadow-hard"
+				onclick={() => (showDeleteModal = true)}
+				class="brutalist-border bg-molten-commit-orange px-6 py-3 font-display text-lg font-bold uppercase shadow-hard transition-opacity hover:opacity-80"
 			>
 				<span class="flex items-center gap-2 text-signal-black">
 					<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;"
@@ -252,6 +278,71 @@
 					DELETE
 				</span>
 			</button>
+		</div>
+	{/if}
+
+	{#if showDeleteModal}
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-signal-black/70 p-4"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="delete-modal-title"
+		>
+			<div class="brutalist-border w-full max-w-lg bg-cold-console-white shadow-hard">
+				<div class="bg-signal-black px-6 py-4">
+					<div
+						class="mb-1 flex items-center gap-2 font-mono text-xs font-bold tracking-widest text-molten-commit-orange uppercase"
+					>
+						<span class="material-symbols-outlined text-base">warning</span>
+						DESTRUCTIVE_OP // CONFIRM_REQUIRED
+					</div>
+					<h2
+						id="delete-modal-title"
+						class="font-display text-2xl font-bold tracking-tight text-cold-console-white uppercase"
+					>
+						PURGE RECORD?
+					</h2>
+				</div>
+				<div class="p-6">
+					<p class="mb-2 font-mono text-sm leading-7 uppercase">
+						<span class="font-bold">{recipe?.title}</span>
+					</p>
+					<p class="font-mono text-xs leading-6 text-muted uppercase">
+						THIS WILL PERMANENTLY REMOVE FLUX_ID {recipe?.id} FROM POUDB. THIS ACTION CANNOT BE UNDONE.
+					</p>
+					<div class="mt-6 flex flex-col gap-3 sm:flex-row">
+						<button
+							type="button"
+							onclick={confirmDelete}
+							disabled={deleteLoading}
+							class="brutalist-border flex-1 bg-molten-commit-orange px-6 py-3 font-display text-base font-bold uppercase shadow-hard transition-opacity hover:opacity-80 disabled:opacity-50"
+						>
+							<span class="flex items-center justify-center gap-2 text-signal-black">
+								{#if deleteLoading}
+									<span class="material-symbols-outlined animate-pulse text-base"
+										>hourglass_empty</span
+									>
+									PURGING...
+								{:else}
+									<span
+										class="material-symbols-outlined text-base"
+										style="font-variation-settings: 'FILL' 1;">delete_forever</span
+									>
+									CONFIRM PURGE
+								{/if}
+							</span>
+						</button>
+						<button
+							type="button"
+							onclick={() => (showDeleteModal = false)}
+							disabled={deleteLoading}
+							class="brutalist-border flex-1 bg-cold-console-white px-6 py-3 font-display text-base font-bold uppercase shadow-hard transition-colors hover:bg-signal-black hover:text-cold-console-white disabled:opacity-50"
+						>
+							ABORT
+						</button>
+					</div>
+				</div>
+			</div>
 		</div>
 	{/if}
 </div>
