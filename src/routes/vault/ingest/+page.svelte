@@ -11,6 +11,12 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import StepRow from '$lib/components/StepRow.svelte';
 	import TagEditor from '$lib/components/TagEditor.svelte';
+	import {
+		FRIENDLY_ACTION_MESSAGES,
+		getNetworkErrorMessage,
+		normalizeActionFailure
+	} from '$lib/errors/action-errors.js';
+	import { logActionFailure, parseActionResponse } from '$lib/errors/client-action-errors.js';
 	import { toastStore } from '$lib/stores/toast.js';
 
 	/**
@@ -76,6 +82,16 @@
 		draft.ingredients = draft.ingredients.filter((ing) => ing.id !== id);
 	}
 
+	function updateIngredient(
+		/** @type {string} */ id,
+		/** @type {'quantity' | 'unit' | 'name' | 'note'} */ field,
+		/** @type {string} */ value
+	) {
+		draft.ingredients = draft.ingredients.map((ing) =>
+			ing.id === id ? { ...ing, [field]: value } : ing
+		);
+	}
+
 	function addStep() {
 		const instruction = newStep.trim();
 		if (!instruction) {
@@ -93,6 +109,12 @@
 
 	function removeStep(/** @type {string} */ id) {
 		draft.steps = draft.steps.filter((step) => step.id !== id);
+	}
+
+	function updateStep(/** @type {string} */ id, /** @type {string} */ instruction) {
+		draft.steps = draft.steps.map((step) =>
+			step.id === id ? { ...step, instruction } : step
+		);
 	}
 
 	function addTag(value = newTag) {
@@ -163,25 +185,43 @@
 				body: formData
 			});
 
-			const result = await response.json();
+			const { parseOk, payload, responseOk, status } = await parseActionResponse(response);
 
-			if (result.data?.success) {
-				toastStore.pushSuccessToast(`RECIPE COMMIT OK // FLUX_ID ${result.data.id}`);
-				await goto(resolve(`/vault/${result.data.id}`));
-			} else if (result.data?.errors) {
-				const { general, ...fieldErrors } = result.data.errors;
-				errors = fieldErrors;
-				if (general) {
-					toastStore.pushErrorToast(general);
-				}
-				loading = false;
-			} else {
-				toastStore.pushErrorToast('UNKNOWN ERROR DURING RECIPE CREATION');
-				loading = false;
+			if (payload.success === true && typeof payload.id === 'string') {
+				toastStore.pushSuccessToast(`RECIPE COMMIT OK // FLUX_ID ${payload.id}`);
+				await goto(resolve(`/vault/${payload.id}`));
+				return;
 			}
+
+			const { generalMessage, fieldErrors } = normalizeActionFailure(payload, {
+				fallbackMessage: parseOk
+					? FRIENDLY_ACTION_MESSAGES.create
+					: FRIENDLY_ACTION_MESSAGES.response
+			});
+
+			logActionFailure('ingest/create', {
+				responseOk,
+				status,
+				parseOk,
+				payload,
+				generalMessage,
+				fieldErrorKeys: Object.keys(fieldErrors)
+			});
+
+			errors = fieldErrors;
+			if (generalMessage) {
+				toastStore.pushErrorToast(generalMessage);
+			}
+			loading = false;
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'UNKNOWN ERROR';
-			toastStore.pushErrorToast(`NETWORK ERROR: ${errorMessage}`);
+			logActionFailure('ingest/create/network', {
+				error: err instanceof Error ? err.message : String(err)
+			});
+			toastStore.pushErrorToast(
+				getNetworkErrorMessage(err, {
+					fallbackMessage: FRIENDLY_ACTION_MESSAGES.network
+				})
+			);
 			loading = false;
 		}
 	}
@@ -244,243 +284,245 @@
 					titleClass="text-2xl"
 					sectionClass="bg-cold-console-white p-6 shadow-hard lg:p-8"
 				>
-				<div class="flex flex-col gap-6">
-					<Input
-						id="title"
-						label="RECIPE_TITLE"
-						type="text"
-						placeholder="> RECIPE NAME..."
-						bind:value={draft.title}
-						error={!!errors.title}
-						errorMessage={errors.title}
-						icon="restaurant"
-					/>
-
-					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div class="flex flex-col gap-6">
 						<Input
-							id="yieldLabel"
-							label="YIELD_LABEL"
+							id="title"
+							label="RECIPE_TITLE"
 							type="text"
-							placeholder="> 4 SERVINGS..."
-							bind:value={draft.yieldLabel}
-							error={!!errors.yieldLabel}
-							errorMessage={errors.yieldLabel}
-							icon="scale"
+							placeholder="> RECIPE NAME..."
+							bind:value={draft.title}
+							error={!!errors.title}
+							errorMessage={errors.title}
+							icon="restaurant"
 						/>
 
-						<Input
-							id="timeMinutes"
-							label="TIME_MINUTES"
-							type="text"
-							placeholder="> 45..."
-							bind:value={draft.timeMinutes}
-							error={!!errors.timeMinutes}
-							errorMessage={errors.timeMinutes}
-							icon="schedule"
-						/>
+						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<Input
+								id="yieldLabel"
+								label="YIELD_LABEL"
+								type="text"
+								placeholder="> 4 SERVINGS..."
+								bind:value={draft.yieldLabel}
+								error={!!errors.yieldLabel}
+								errorMessage={errors.yieldLabel}
+								icon="scale"
+							/>
+
+							<Input
+								id="timeMinutes"
+								label="TIME_MINUTES"
+								type="text"
+								placeholder="> 45..."
+								bind:value={draft.timeMinutes}
+								error={!!errors.timeMinutes}
+								errorMessage={errors.timeMinutes}
+								icon="schedule"
+							/>
+						</div>
 					</div>
-				</div>
 				</FormSection>
 			</div>
 
 			<div in:fly={sectionEnter(1)} out:fade={{ duration: 110 }}>
 				<FormSection title="METADATA_TAGS">
-				<TagEditor
-					label="newTag"
-					placeholder="TAG NAME..."
-					tags={draft.tags}
-					bind:inputValue={newTag}
-					errorMessage={errors.tags}
-					onAdd={(value) => {
-						if (addTag(value)) newTag = '';
-					}}
-					onRemove={removeTag}
-				/>
+					<TagEditor
+						label="newTag"
+						placeholder="TAG NAME..."
+						tags={draft.tags}
+						bind:inputValue={newTag}
+						errorMessage={errors.tags}
+						onAdd={(value) => {
+							if (addTag(value)) newTag = '';
+						}}
+						onRemove={removeTag}
+					/>
 				</FormSection>
 			</div>
 
 			<div in:fly={sectionEnter(2)} out:fade={{ duration: 110 }}>
 				<FormSection title="SYSTEM_FLAGS">
-				<TagEditor
-					label="newFlag"
-					placeholder="FLAG NAME..."
-					tags={draft.systemFlags}
-					bind:inputValue={newFlag}
-					errorMessage={errors.systemFlags}
-					onAdd={(value) => {
-						if (addFlag(value)) newFlag = '';
-					}}
-					onRemove={removeFlag}
-				/>
+					<TagEditor
+						label="newFlag"
+						placeholder="FLAG NAME..."
+						tags={draft.systemFlags}
+						bind:inputValue={newFlag}
+						errorMessage={errors.systemFlags}
+						onAdd={(value) => {
+							if (addFlag(value)) newFlag = '';
+						}}
+						onRemove={removeFlag}
+					/>
 				</FormSection>
 			</div>
 
 			<div in:fly={sectionEnter(3)} out:fade={{ duration: 120 }}>
 				<FormSection title="REQUIREMENTS_">
-				{#if errors.ingredients}
-					<div
-						class="mb-4 border-2 border-molten-commit-orange bg-cold-console-white p-3 font-mono text-xs text-molten-commit-orange uppercase"
-					>
-						{errors.ingredients}
-					</div>
-				{/if}
-
-				<div class="mb-6 flex flex-col gap-3">
-					{#each draft.ingredients as ingredient, idx (ingredient.id)}
+					{#if errors.ingredients}
 						<div
-							animate:flip={{ duration: 240, easing: cubicOut }}
-							in:slide={{
-								axis: 'y',
-								duration: 230,
-								easing: cubicOut,
-								delay: Math.min(idx, 6) * 30
-							}}
-							out:fade={{ duration: 160 }}
+							class="mb-4 border-2 border-molten-commit-orange bg-cold-console-white p-3 font-mono text-xs text-molten-commit-orange uppercase"
 						>
-							<IngredientRow
-								{ingredient}
-								index={idx}
-								errors={{
-									qty: errors[`ingredients[${idx}].quantity`],
-									unit: errors[`ingredients[${idx}].unit`],
-									name: errors[`ingredients[${idx}].name`]
+							{errors.ingredients}
+						</div>
+					{/if}
+
+					<div class="mb-6 flex flex-col gap-3">
+						{#each draft.ingredients as ingredient, idx (ingredient.id)}
+							<div
+								animate:flip={{ duration: 240, easing: cubicOut }}
+								in:slide={{
+									axis: 'y',
+									duration: 230,
+									easing: cubicOut,
+									delay: Math.min(idx, 6) * 30
 								}}
-								onRemove={() => removeIngredient(ingredient.id)}
+								out:fade={{ duration: 160 }}
+							>
+								<IngredientRow
+									{ingredient}
+									index={idx}
+									onChange={(field, value) => updateIngredient(ingredient.id, field, value)}
+									errors={{
+										qty: errors[`ingredients[${idx}].quantity`],
+										unit: errors[`ingredients[${idx}].unit`],
+										name: errors[`ingredients[${idx}].name`]
+									}}
+									onRemove={() => removeIngredient(ingredient.id)}
+								/>
+							</div>
+						{/each}
+					</div>
+
+					<div class="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-4">
+						<div>
+							<label
+								for="newIngredientQty"
+								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+							>
+								QTY
+							</label>
+							<input
+								id="newIngredientQty"
+								type="text"
+								placeholder="1"
+								bind:value={newIngredient.quantity}
+								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
 							/>
 						</div>
-					{/each}
-				</div>
 
-				<div class="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-4">
-					<div>
-						<label
-							for="newIngredientQty"
-							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-						>
-							QTY
-						</label>
-						<input
-							id="newIngredientQty"
-							type="text"
-							placeholder="1"
-							bind:value={newIngredient.quantity}
-							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
-						/>
+						<div>
+							<label
+								for="newIngredientUnit"
+								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+							>
+								UNIT
+							</label>
+							<input
+								id="newIngredientUnit"
+								type="text"
+								placeholder="CUP"
+								bind:value={newIngredient.unit}
+								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="newIngredientName"
+								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+							>
+								NAME
+							</label>
+							<input
+								id="newIngredientName"
+								type="text"
+								placeholder="garlic"
+								bind:value={newIngredient.name}
+								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="newIngredientNote"
+								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+							>
+								NOTE
+							</label>
+							<input
+								id="newIngredientNote"
+								type="text"
+								placeholder="minced"
+								bind:value={newIngredient.note}
+								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
+							/>
+						</div>
 					</div>
 
-					<div>
-						<label
-							for="newIngredientUnit"
-							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+					<div class="flex gap-2">
+						<button
+							type="button"
+							onclick={addIngredient}
+							disabled={!newIngredient.quantity || !newIngredient.unit || !newIngredient.name}
+							class="brutalist-border border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black disabled:cursor-not-allowed disabled:opacity-50"
 						>
-							UNIT
-						</label>
-						<input
-							id="newIngredientUnit"
-							type="text"
-							placeholder="CUP"
-							bind:value={newIngredient.unit}
-							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
-						/>
+							[+ ADD INGREDIENT]
+						</button>
 					</div>
-
-					<div>
-						<label
-							for="newIngredientName"
-							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-						>
-							NAME
-						</label>
-						<input
-							id="newIngredientName"
-							type="text"
-							placeholder="garlic"
-							bind:value={newIngredient.name}
-							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
-						/>
-					</div>
-
-					<div>
-						<label
-							for="newIngredientNote"
-							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-						>
-							NOTE
-						</label>
-						<input
-							id="newIngredientNote"
-							type="text"
-							placeholder="minced"
-							bind:value={newIngredient.note}
-							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
-						/>
-					</div>
-				</div>
-
-				<div class="flex gap-2">
-					<button
-						type="button"
-						onclick={addIngredient}
-						disabled={!newIngredient.quantity || !newIngredient.unit || !newIngredient.name}
-						class="brutalist-border border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black disabled:cursor-not-allowed disabled:opacity-50"
-					>
-						[+ ADD INGREDIENT]
-					</button>
-				</div>
 				</FormSection>
 			</div>
 
 			<div in:fly={sectionEnter(4)} out:fade={{ duration: 120 }}>
 				<FormSection title="EXECUTION_">
-				{#if errors.steps}
-					<div
-						class="mb-4 border-2 border-molten-commit-orange bg-cold-console-white p-3 font-mono text-xs text-molten-commit-orange uppercase"
-					>
-						{errors.steps}
-					</div>
-				{/if}
-
-				<div class="mb-6 flex flex-col gap-3">
-					{#each draft.steps as step, idx (step.id)}
+					{#if errors.steps}
 						<div
-							animate:flip={{ duration: 250, easing: cubicOut }}
-							in:slide={{
-								axis: 'y',
-								duration: 240,
-								easing: cubicOut,
-								delay: Math.min(idx, 6) * 28
-							}}
-							out:fade={{ duration: 170 }}
+							class="mb-4 border-2 border-molten-commit-orange bg-cold-console-white p-3 font-mono text-xs text-molten-commit-orange uppercase"
 						>
-							<StepRow
-								{step}
-								index={idx}
-								errorMessage={errors[`steps[${idx}].instruction`]}
-								onRemove={() => removeStep(step.id)}
-							/>
+							{errors.steps}
 						</div>
-					{/each}
-				</div>
+					{/if}
 
-				<div class="flex flex-col gap-2">
-					<label for="newStep" class="text-[10px] font-bold tracking-widest text-muted uppercase">
-						NEW STEP
-					</label>
-					<textarea
-						id="newStep"
-						rows="2"
-						placeholder="New step instruction..."
-						bind:value={newStep}
-						class="brutalist-border flex-1 border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
-					></textarea>
-					<button
-						type="button"
-						onclick={addStep}
-						class="brutalist-border border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black"
-					>
-						[+ ADD STEP]
-					</button>
-				</div>
+					<div class="mb-6 flex flex-col gap-3">
+						{#each draft.steps as step, idx (step.id)}
+							<div
+								animate:flip={{ duration: 250, easing: cubicOut }}
+								in:slide={{
+									axis: 'y',
+									duration: 240,
+									easing: cubicOut,
+									delay: Math.min(idx, 6) * 28
+								}}
+								out:fade={{ duration: 170 }}
+							>
+								<StepRow
+									{step}
+									index={idx}
+									onChange={(value) => updateStep(step.id, value)}
+									errorMessage={errors[`steps[${idx}].instruction`]}
+									onRemove={() => removeStep(step.id)}
+								/>
+							</div>
+						{/each}
+					</div>
+
+					<div class="flex flex-col gap-2">
+						<label for="newStep" class="text-[10px] font-bold tracking-widest text-muted uppercase">
+							NEW STEP
+						</label>
+						<textarea
+							id="newStep"
+							rows="2"
+							placeholder="New step instruction..."
+							bind:value={newStep}
+							class="brutalist-border flex-1 border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
+						></textarea>
+						<button
+							type="button"
+							onclick={addStep}
+							class="brutalist-border border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black"
+						>
+							[+ ADD STEP]
+						</button>
+					</div>
 				</FormSection>
 			</div>
 
@@ -490,69 +532,69 @@
 					titleClass="text-xl"
 					sectionClass="bg-surface p-6 shadow-hard lg:p-8"
 				>
-				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<div>
-						<label
-							for="recordBytes"
-							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-						>
-							RECORD_BYTES
-						</label>
-						<input
-							id="recordBytes"
-							type="number"
-							bind:value={draft.parserMetadata.recordBytes}
-							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
-						/>
-					</div>
+					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<div>
+							<label
+								for="recordBytes"
+								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+							>
+								RECORD_BYTES
+							</label>
+							<input
+								id="recordBytes"
+								type="number"
+								bind:value={draft.parserMetadata.recordBytes}
+								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
+							/>
+						</div>
 
-					<div>
-						<label
-							for="checksumHex"
-							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-						>
-							CHECKSUM_HEX
-						</label>
-						<input
-							id="checksumHex"
-							type="text"
-							bind:value={draft.parserMetadata.checksumHex}
-							placeholder="0x000000"
-							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
-						/>
-					</div>
+						<div>
+							<label
+								for="checksumHex"
+								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+							>
+								CHECKSUM_HEX
+							</label>
+							<input
+								id="checksumHex"
+								type="text"
+								bind:value={draft.parserMetadata.checksumHex}
+								placeholder="0x000000"
+								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
+							/>
+						</div>
 
-					<div>
-						<label
-							for="structName"
-							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-						>
-							STRUCT_NAME
-						</label>
-						<input
-							id="structName"
-							type="text"
-							bind:value={draft.parserMetadata.structName}
-							placeholder="recipe_record_v2"
-							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
-						/>
-					</div>
+						<div>
+							<label
+								for="structName"
+								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+							>
+								STRUCT_NAME
+							</label>
+							<input
+								id="structName"
+								type="text"
+								bind:value={draft.parserMetadata.structName}
+								placeholder="recipe_record_v2"
+								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
+							/>
+						</div>
 
-					<div>
-						<label
-							for="fieldCount"
-							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-						>
-							FIELD_COUNT
-						</label>
-						<input
-							id="fieldCount"
-							type="number"
-							bind:value={draft.parserMetadata.fieldCount}
-							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
-						/>
+						<div>
+							<label
+								for="fieldCount"
+								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+							>
+								FIELD_COUNT
+							</label>
+							<input
+								id="fieldCount"
+								type="number"
+								bind:value={draft.parserMetadata.fieldCount}
+								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
+							/>
+						</div>
 					</div>
-				</div>
 				</FormSection>
 			</div>
 

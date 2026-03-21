@@ -4,10 +4,11 @@
 	 *   ingredient: { id: string, quantity: string, unit: string, name: string, note?: string },
 	 *   index: number,
 	 *   errors?: { qty?: string, unit?: string, name?: string },
+	 *   onChange: (field: 'quantity' | 'unit' | 'name' | 'note', value: string) => void,
 	 *   onRemove: () => void
 	 * }}
 	 */
-	let { ingredient, index, errors = {}, onRemove } = $props();
+	let { ingredient, index, errors = {}, onChange, onRemove } = $props();
 </script>
 
 <div
@@ -24,7 +25,8 @@
 			id={`ingredient_${ingredient.id ?? index}_qty`}
 			type="text"
 			placeholder="1"
-			bind:value={ingredient.quantity}
+			value={ingredient.quantity}
+			oninput={(event) => onChange('quantity', event.currentTarget.value)}
 			class={`brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none ${
 				errors.qty
 					? 'border-molten-commit-orange focus:border-molten-commit-orange'
@@ -47,7 +49,8 @@
 			id={`ingredient_${ingredient.id ?? index}_unit`}
 			type="text"
 			placeholder="CUP"
-			bind:value={ingredient.unit}
+			value={ingredient.unit}
+			oninput={(event) => onChange('unit', event.currentTarget.value)}
 			class={`brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm uppercase outline-none ${
 				errors.unit
 					? 'border-molten-commit-orange focus:border-molten-commit-orange'
@@ -70,7 +73,8 @@
 			id={`ingredient_${ingredient.id ?? index}_name`}
 			type="text"
 			placeholder="garlic"
-			bind:value={ingredient.name}
+			value={ingredient.name}
+			oninput={(event) => onChange('name', event.currentTarget.value)}
 			class={`brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none ${
 				errors.name
 					? 'border-molten-commit-orange focus:border-molten-commit-orange'
@@ -94,7 +98,8 @@
 				id={`ingredient_${ingredient.id ?? index}_note`}
 				type="text"
 				placeholder="minced"
-				bind:value={ingredient.note}
+				value={ingredient.note}
+				oninput={(event) => onChange('note', event.currentTarget.value)}
 				class="brutalist-border flex-1 border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
 			/>
 			<button

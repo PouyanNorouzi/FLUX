@@ -4,6 +4,12 @@
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import {
+		FRIENDLY_ACTION_MESSAGES,
+		getNetworkErrorMessage,
+		normalizeActionFailure
+	} from '$lib/errors/action-errors.js';
+	import { logActionFailure, parseActionResponse } from '$lib/errors/client-action-errors.js';
 	import MetaField from '$lib/components/MetaField.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import TagChip from '$lib/components/TagChip.svelte';
@@ -40,18 +46,41 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = await response.json();
-			if (result.data?.success) {
+
+			const { parseOk, payload, responseOk, status } = await parseActionResponse(response);
+
+			if (payload.success === true) {
 				toastStore.pushSuccessToast(`RECORD ${recipe.id} PURGED FROM POUDB`);
 				await goto(resolve('/vault'));
-			} else {
-				toastStore.pushErrorToast(`DELETE FAILED: ${result.data?.error ?? 'UNKNOWN_ERROR'}`);
-				deleteLoading = false;
-				showDeleteModal = false;
+				return;
 			}
+
+			const { generalMessage } = normalizeActionFailure(payload, {
+				fallbackMessage: parseOk
+					? FRIENDLY_ACTION_MESSAGES.delete
+					: FRIENDLY_ACTION_MESSAGES.response
+			});
+
+			logActionFailure('detail/delete', {
+				responseOk,
+				status,
+				parseOk,
+				payload,
+				generalMessage
+			});
+
+			toastStore.pushErrorToast(generalMessage || FRIENDLY_ACTION_MESSAGES.delete);
+			deleteLoading = false;
+			showDeleteModal = false;
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : 'UNKNOWN_ERROR';
-			toastStore.pushErrorToast(`NETWORK ERROR: ${msg}`);
+			logActionFailure('detail/delete/network', {
+				error: err instanceof Error ? err.message : String(err)
+			});
+			toastStore.pushErrorToast(
+				getNetworkErrorMessage(err, {
+					fallbackMessage: FRIENDLY_ACTION_MESSAGES.network
+				})
+			);
 			deleteLoading = false;
 			showDeleteModal = false;
 		}

@@ -1,4 +1,8 @@
 import { recipeRepository } from '$lib/mock/poudb';
+import {
+	FRIENDLY_ACTION_MESSAGES,
+	mapRepositoryErrorToMessage
+} from '$lib/errors/action-errors.js';
 import { validateRecipeCreateInput } from '$lib/recipe-repository.js';
 
 /** @type {import('./$types').Actions} */
@@ -8,105 +12,117 @@ export const actions = {
 	 * Parses nested FormData arrays and validates before persisting.
 	 */
 	create: async ({ request }) => {
-		const formData = await request.formData();
+		try {
+			const formData = await request.formData();
 
-		// Helper to parse FormData with bracket notation (e.g., ingredients[0].qty)
-		/**
-		 * @param {FormData} fd
-		 * @returns {import('$lib/recipe-repository').RecipeCreateInput}
-		 */
-		function parseFormDataArrays(fd) {
-			/** @type {import('$lib/recipe-repository').RecipeCreateInput} */
-			const result = {
-				title: String(fd.get('title') ?? ''),
-				yieldLabel: String(fd.get('yieldLabel') ?? ''),
-				timeMinutes: String(fd.get('timeMinutes') ?? ''),
-				tags: [],
-				systemFlags: [],
-				ingredients: [],
-				steps: [],
-				parserMetadata: {
-					recordBytes: String(fd.get('parserMetadata.recordBytes') ?? '256'),
-					checksumHex: String(fd.get('parserMetadata.checksumHex') ?? '0x000000'),
-					structName: String(fd.get('parserMetadata.structName') ?? 'recipe_record_v2'),
-					fieldCount: String(fd.get('parserMetadata.fieldCount') ?? '10')
+			// Helper to parse FormData with bracket notation (e.g., ingredients[0].qty)
+			/**
+			 * @param {FormData} fd
+			 * @returns {import('$lib/recipe-repository').RecipeCreateInput}
+			 */
+			function parseFormDataArrays(fd) {
+				/** @type {import('$lib/recipe-repository').RecipeCreateInput} */
+				const result = {
+					title: String(fd.get('title') ?? ''),
+					yieldLabel: String(fd.get('yieldLabel') ?? ''),
+					timeMinutes: String(fd.get('timeMinutes') ?? ''),
+					tags: [],
+					systemFlags: [],
+					ingredients: [],
+					steps: [],
+					parserMetadata: {
+						recordBytes: String(fd.get('parserMetadata.recordBytes') ?? '256'),
+						checksumHex: String(fd.get('parserMetadata.checksumHex') ?? '0x000000'),
+						structName: String(fd.get('parserMetadata.structName') ?? 'recipe_record_v2'),
+						fieldCount: String(fd.get('parserMetadata.fieldCount') ?? '10')
+					}
+				};
+
+				// Parse tags
+				let tagIdx = 0;
+				while (fd.has(`tags[${tagIdx}]`)) {
+					const tag = fd.get(`tags[${tagIdx}]`);
+					if (typeof tag === 'string') {
+						result.tags.push(tag);
+					}
+					tagIdx++;
 				}
-			};
 
-			// Parse tags
-			let tagIdx = 0;
-			while (fd.has(`tags[${tagIdx}]`)) {
-				const tag = fd.get(`tags[${tagIdx}]`);
-				if (typeof tag === 'string') {
-					result.tags.push(tag);
+				// Parse system flags
+				let flagIdx = 0;
+				while (fd.has(`systemFlags[${flagIdx}]`)) {
+					const flag = fd.get(`systemFlags[${flagIdx}]`);
+					if (typeof flag === 'string') {
+						result.systemFlags.push(flag);
+					}
+					flagIdx++;
 				}
-				tagIdx++;
-			}
 
-			// Parse system flags
-			let flagIdx = 0;
-			while (fd.has(`systemFlags[${flagIdx}]`)) {
-				const flag = fd.get(`systemFlags[${flagIdx}]`);
-				if (typeof flag === 'string') {
-					result.systemFlags.push(flag);
+				// Parse ingredients
+				let ingIdx = 0;
+				while (fd.has(`ingredients[${ingIdx}].quantity`)) {
+					const qty = fd.get(`ingredients[${ingIdx}].quantity`);
+					const unit = fd.get(`ingredients[${ingIdx}].unit`);
+					const name = fd.get(`ingredients[${ingIdx}].name`);
+					const note = fd.get(`ingredients[${ingIdx}].note`);
+
+					result.ingredients.push({
+						quantity: String(qty ?? ''),
+						unit: String(unit ?? ''),
+						name: String(name ?? ''),
+						note: typeof note === 'string' ? note : undefined
+					});
+					ingIdx++;
 				}
-				flagIdx++;
+
+				// Parse steps
+				let stepIdx = 0;
+				while (fd.has(`steps[${stepIdx}].instruction`)) {
+					const instruction = fd.get(`steps[${stepIdx}].instruction`);
+					result.steps.push({
+						instruction: String(instruction ?? '')
+					});
+					stepIdx++;
+				}
+
+				return result;
 			}
 
-			// Parse ingredients
-			let ingIdx = 0;
-			while (fd.has(`ingredients[${ingIdx}].quantity`)) {
-				const qty = fd.get(`ingredients[${ingIdx}].quantity`);
-				const unit = fd.get(`ingredients[${ingIdx}].unit`);
-				const name = fd.get(`ingredients[${ingIdx}].name`);
-				const note = fd.get(`ingredients[${ingIdx}].note`);
+			const input = parseFormDataArrays(formData);
+			const validation = validateRecipeCreateInput(input);
 
-				result.ingredients.push({
-					quantity: String(qty ?? ''),
-					unit: String(unit ?? ''),
-					name: String(name ?? ''),
-					note: typeof note === 'string' ? note : undefined
-				});
-				ingIdx++;
+			if (!validation.valid) {
+				return {
+					success: false,
+					errors: validation.errors,
+					code: 'CREATE_VALIDATION_FAILED'
+				};
 			}
 
-			// Parse steps
-			let stepIdx = 0;
-			while (fd.has(`steps[${stepIdx}].instruction`)) {
-				const instruction = fd.get(`steps[${stepIdx}].instruction`);
-				result.steps.push({
-					instruction: String(instruction ?? '')
-				});
-				stepIdx++;
+			const result = recipeRepository.create(input);
+
+			if (result.success) {
+				return {
+					success: true,
+					id: result.id
+				};
 			}
 
-			return result;
-		}
-
-		const input = parseFormDataArrays(formData);
-		const validation = validateRecipeCreateInput(input);
-
-		if (!validation.valid) {
-			return {
-				success: false,
-				errors: validation.errors
-			};
-		}
-
-		// Create the recipe in the repository
-		const result = recipeRepository.create(input);
-
-		if (result.success) {
-			return {
-				success: true,
-				id: result.id
-			};
-		} else {
 			return {
 				success: false,
 				errors: {
-					general: result.error || 'FAILED_TO_CREATE_RECIPE'
-				}
+					general: mapRepositoryErrorToMessage(result.error, FRIENDLY_ACTION_MESSAGES.create)
+				},
+				code: result.error ?? 'CREATE_FAILED'
+			};
+		} catch (error) {
+			console.error('[ingest/create] unexpected failure', error);
+			return {
+				success: false,
+				errors: {
+					general: FRIENDLY_ACTION_MESSAGES.create
+				},
+				code: 'CREATE_UNEXPECTED'
 			};
 		}
 	}
