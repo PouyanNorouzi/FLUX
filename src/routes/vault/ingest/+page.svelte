@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
+	import { toastStore } from '$lib/stores/toast.js';
 
 	/**
 	 * @typedef {{id: string, quantity: string, unit: string, name: string, note?: string}} DraftIngredient
@@ -169,18 +170,23 @@
 			const result = await response.json();
 
 			if (result.data?.success) {
+				toastStore.pushSuccessToast(`RECIPE COMMIT OK // FLUX_ID ${result.data.id}`);
 				// Redirect to the created recipe detail page
 				await goto(resolve(`/vault/${result.data.id}`));
 			} else if (result.data?.errors) {
-				errors = result.data.errors;
+				const { general, ...fieldErrors } = result.data.errors;
+				errors = fieldErrors;
+				if (general) {
+					toastStore.pushErrorToast(general);
+				}
 				loading = false;
 			} else {
-				errors.general = 'UNKNOWN ERROR DURING RECIPE CREATION';
+				toastStore.pushErrorToast('UNKNOWN ERROR DURING RECIPE CREATION');
 				loading = false;
 			}
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : 'UNKNOWN ERROR';
-			errors.general = `NETWORK ERROR: ${errorMessage}`;
+			toastStore.pushErrorToast(`NETWORK ERROR: ${errorMessage}`);
 			loading = false;
 		}
 	}
@@ -244,19 +250,6 @@
 
 	<!-- Main Form -->
 	<main class="mx-auto flex w-full max-w-360 flex-1 flex-col gap-8 p-4 lg:p-8">
-		<!-- Error toast -->
-		{#if errors.general}
-			<div
-				class="brutalist-border flex flex-col gap-3 bg-molten-commit-orange p-4 text-signal-black shadow-hard lg:p-6"
-			>
-				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined">warning</span>
-					<span class="font-display text-lg font-bold uppercase">WRITE_ERROR</span>
-				</div>
-				<p class="font-mono text-sm uppercase">{errors.general}</p>
-			</div>
-		{/if}
-
 		<form onsubmit={handleSubmit} class="flex flex-col gap-8">
 			<!-- Recipe Metadata Section -->
 			<section class="brutalist-border bg-cold-console-white p-6 shadow-hard lg:p-8">

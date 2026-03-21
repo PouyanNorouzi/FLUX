@@ -21,7 +21,6 @@
 	let query = $state('');
 	let activeTag = $state('[ALL]');
 	let loading = $state(true);
-	let showError = $state(false);
 
 	onMount(() => {
 		const t = setTimeout(() => {
@@ -225,27 +224,4 @@
 			</div>
 		</section>
 	</main>
-
-	<!-- Error Toast -->
-	{#if showError}
-		<div class="fixed right-6 bottom-6 z-50">
-			<div
-				class="brutalist-border flex w-80 items-start gap-3 bg-molten-commit-orange p-4 text-cold-console-white shadow-hard"
-			>
-				<span class="material-symbols-outlined">warning</span>
-				<div class="flex flex-col gap-1">
-					<span class="font-display text-lg leading-none font-bold uppercase">FLUX_ALERT</span>
-					<span class="font-mono text-xs font-medium uppercase"
-						>ERR_TCP_TIMEOUT: CONNECTION LOST TO POUDB DAEMON.</span
-					>
-				</div>
-				<button
-					onclick={() => (showError = false)}
-					class="ml-auto transition-opacity hover:opacity-70"
-				>
-					<span class="material-symbols-outlined text-sm">close</span>
-				</button>
-			</div>
-		</div>
-	{/if}
 </div>
