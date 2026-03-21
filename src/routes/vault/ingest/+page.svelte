@@ -1,6 +1,9 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { flip } from 'svelte/animate';
+	import { cubicOut } from 'svelte/easing';
+	import { fade, fly, slide } from 'svelte/transition';
 	import Button from '$lib/components/Button.svelte';
 	import FormSection from '$lib/components/FormSection.svelte';
 	import IngredientRow from '$lib/components/IngredientRow.svelte';
@@ -205,6 +208,16 @@
 	function returnToVault() {
 		goto(resolve('/vault'));
 	}
+
+	function sectionEnter(/** @type {number} */ index) {
+		return {
+			y: 20,
+			opacity: 0.32,
+			duration: 280,
+			delay: 90 + index * 70,
+			easing: cubicOut
+		};
+	}
 </script>
 
 <svelte:head>
@@ -225,11 +238,12 @@
 
 	<main class="mx-auto flex w-full max-w-360 flex-1 flex-col gap-8 p-4 lg:p-8">
 		<form onsubmit={handleSubmit} class="flex flex-col gap-8">
-			<FormSection
-				title="RECIPE_METADATA"
-				titleClass="text-2xl"
-				sectionClass="bg-cold-console-white p-6 shadow-hard lg:p-8"
-			>
+			<div in:fly={sectionEnter(0)} out:fade={{ duration: 110 }}>
+				<FormSection
+					title="RECIPE_METADATA"
+					titleClass="text-2xl"
+					sectionClass="bg-cold-console-white p-6 shadow-hard lg:p-8"
+				>
 				<div class="flex flex-col gap-6">
 					<Input
 						id="title"
@@ -266,9 +280,11 @@
 						/>
 					</div>
 				</div>
-			</FormSection>
+				</FormSection>
+			</div>
 
-			<FormSection title="METADATA_TAGS">
+			<div in:fly={sectionEnter(1)} out:fade={{ duration: 110 }}>
+				<FormSection title="METADATA_TAGS">
 				<TagEditor
 					label="newTag"
 					placeholder="TAG NAME..."
@@ -280,9 +296,11 @@
 					}}
 					onRemove={removeTag}
 				/>
-			</FormSection>
+				</FormSection>
+			</div>
 
-			<FormSection title="SYSTEM_FLAGS">
+			<div in:fly={sectionEnter(2)} out:fade={{ duration: 110 }}>
+				<FormSection title="SYSTEM_FLAGS">
 				<TagEditor
 					label="newFlag"
 					placeholder="FLAG NAME..."
@@ -294,9 +312,11 @@
 					}}
 					onRemove={removeFlag}
 				/>
-			</FormSection>
+				</FormSection>
+			</div>
 
-			<FormSection title="REQUIREMENTS_">
+			<div in:fly={sectionEnter(3)} out:fade={{ duration: 120 }}>
+				<FormSection title="REQUIREMENTS_">
 				{#if errors.ingredients}
 					<div
 						class="mb-4 border-2 border-molten-commit-orange bg-cold-console-white p-3 font-mono text-xs text-molten-commit-orange uppercase"
@@ -307,31 +327,111 @@
 
 				<div class="mb-6 flex flex-col gap-3">
 					{#each draft.ingredients as ingredient, idx (ingredient.id)}
-						<IngredientRow
-							{ingredient}
-							index={idx}
-							errors={{
-								qty: errors[`ingredients[${idx}].quantity`],
-								unit: errors[`ingredients[${idx}].unit`],
-								name: errors[`ingredients[${idx}].name`]
+						<div
+							animate:flip={{ duration: 240, easing: cubicOut }}
+							in:slide={{
+								axis: 'y',
+								duration: 230,
+								easing: cubicOut,
+								delay: Math.min(idx, 6) * 30
 							}}
-							onRemove={() => removeIngredient(ingredient.id)}
-						/>
+							out:fade={{ duration: 160 }}
+						>
+							<IngredientRow
+								{ingredient}
+								index={idx}
+								errors={{
+									qty: errors[`ingredients[${idx}].quantity`],
+									unit: errors[`ingredients[${idx}].unit`],
+									name: errors[`ingredients[${idx}].name`]
+								}}
+								onRemove={() => removeIngredient(ingredient.id)}
+							/>
+						</div>
 					{/each}
+				</div>
+
+				<div class="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-4">
+					<div>
+						<label
+							for="newIngredientQty"
+							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+						>
+							QTY
+						</label>
+						<input
+							id="newIngredientQty"
+							type="text"
+							placeholder="1"
+							bind:value={newIngredient.quantity}
+							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
+						/>
+					</div>
+
+					<div>
+						<label
+							for="newIngredientUnit"
+							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+						>
+							UNIT
+						</label>
+						<input
+							id="newIngredientUnit"
+							type="text"
+							placeholder="CUP"
+							bind:value={newIngredient.unit}
+							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
+						/>
+					</div>
+
+					<div>
+						<label
+							for="newIngredientName"
+							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+						>
+							NAME
+						</label>
+						<input
+							id="newIngredientName"
+							type="text"
+							placeholder="garlic"
+							bind:value={newIngredient.name}
+							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
+						/>
+					</div>
+
+					<div>
+						<label
+							for="newIngredientNote"
+							class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+						>
+							NOTE
+						</label>
+						<input
+							id="newIngredientNote"
+							type="text"
+							placeholder="minced"
+							bind:value={newIngredient.note}
+							class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
+						/>
+					</div>
 				</div>
 
 				<div class="flex gap-2">
 					<button
 						type="button"
 						onclick={addIngredient}
-						class="brutalist-border border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black"
+						disabled={!newIngredient.quantity || !newIngredient.unit || !newIngredient.name}
+						class="brutalist-border border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						[+ ADD INGREDIENT]
 					</button>
 				</div>
-			</FormSection>
+				</FormSection>
+			</div>
 
-			<FormSection title="EXECUTION_">
+			<div in:fly={sectionEnter(4)} out:fade={{ duration: 120 }}>
+				<FormSection title="EXECUTION_">
 				{#if errors.steps}
 					<div
 						class="mb-4 border-2 border-molten-commit-orange bg-cold-console-white p-3 font-mono text-xs text-molten-commit-orange uppercase"
@@ -342,12 +442,23 @@
 
 				<div class="mb-6 flex flex-col gap-3">
 					{#each draft.steps as step, idx (step.id)}
-						<StepRow
-							{step}
-							index={idx}
-							errorMessage={errors[`steps[${idx}].instruction`]}
-							onRemove={() => removeStep(step.id)}
-						/>
+						<div
+							animate:flip={{ duration: 250, easing: cubicOut }}
+							in:slide={{
+								axis: 'y',
+								duration: 240,
+								easing: cubicOut,
+								delay: Math.min(idx, 6) * 28
+							}}
+							out:fade={{ duration: 170 }}
+						>
+							<StepRow
+								{step}
+								index={idx}
+								errorMessage={errors[`steps[${idx}].instruction`]}
+								onRemove={() => removeStep(step.id)}
+							/>
+						</div>
 					{/each}
 				</div>
 
@@ -370,13 +481,15 @@
 						[+ ADD STEP]
 					</button>
 				</div>
-			</FormSection>
+				</FormSection>
+			</div>
 
-			<FormSection
-				title="PARSE_METADATA"
-				titleClass="text-xl"
-				sectionClass="bg-surface p-6 shadow-hard lg:p-8"
-			>
+			<div in:fly={sectionEnter(5)} out:fade={{ duration: 120 }}>
+				<FormSection
+					title="PARSE_METADATA"
+					titleClass="text-xl"
+					sectionClass="bg-surface p-6 shadow-hard lg:p-8"
+				>
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div>
 						<label
@@ -440,7 +553,8 @@
 						/>
 					</div>
 				</div>
-			</FormSection>
+				</FormSection>
+			</div>
 
 			<div class="flex flex-col gap-3 sm:flex-row">
 				<Button type="submit" {loading} icon="send">[ COMMIT TO POUDB ]</Button>

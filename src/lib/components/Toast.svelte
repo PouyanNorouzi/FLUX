@@ -1,7 +1,7 @@
 <script>
 	import { fade, fly } from 'svelte/transition';
 
-	let { toast, onClose } = $props();
+	let { toast, onClose, index = 0 } = $props();
 
 	const icon = $derived(toast.variant === 'success' ? 'check_circle' : 'warning');
 	const panelClasses = $derived(
@@ -10,13 +10,22 @@
 			: 'bg-molten-commit-orange text-cold-console-white'
 	);
 	const role = $derived(toast.variant === 'success' ? 'status' : 'alert');
+	const delay = $derived(Math.min(index, 5) * 24);
+	const enterTransition = $derived(
+		toast.variant === 'success'
+			? { y: 10, opacity: 0.55, duration: 170, delay }
+			: { y: 16, opacity: 0.45, duration: 210, delay }
+	);
+	const exitTransition = $derived(
+		toast.variant === 'success' ? { duration: 125 } : { duration: 165 }
+	);
 </script>
 
 <article
 	class="brutalist-border pointer-events-auto flex w-full max-w-sm items-start gap-3 p-4 shadow-hard {panelClasses}"
 	{role}
-	in:fly={{ y: 12, duration: 160 }}
-	out:fade={{ duration: 140 }}
+	in:fly={enterTransition}
+	out:fade={exitTransition}
 >
 	<span class="material-symbols-outlined pt-0.5">{icon}</span>
 	<div class="flex min-w-0 flex-1 flex-col gap-1">

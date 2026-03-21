@@ -1,4 +1,6 @@
 <script>
+	import { flip } from 'svelte/animate';
+	import { cubicOut } from 'svelte/easing';
 	import { onDestroy } from 'svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { toastStore } from '$lib/stores/toast.js';
@@ -20,7 +22,9 @@
 	aria-live="polite"
 	aria-atomic="false"
 >
-	{#each toasts as toast (toast.id)}
-		<Toast {toast} onClose={() => toastStore.dismissToast(toast.id)} />
+	{#each toasts as toast, idx (toast.id)}
+		<div animate:flip={{ duration: 180, easing: cubicOut }}>
+			<Toast {toast} index={idx} onClose={() => toastStore.dismissToast(toast.id)} />
+		</div>
 	{/each}
 </section>

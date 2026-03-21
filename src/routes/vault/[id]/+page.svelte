@@ -1,6 +1,8 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { cubicOut } from 'svelte/easing';
+	import { fade, fly } from 'svelte/transition';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import MetaField from '$lib/components/MetaField.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -54,6 +56,16 @@
 			showDeleteModal = false;
 		}
 	}
+
+	function sectionEnter(/** @type {number} */ index) {
+		return {
+			y: 20,
+			opacity: 0.32,
+			duration: 280,
+			delay: 90 + index * 70,
+			easing: cubicOut
+		};
+	}
 </script>
 
 <svelte:head>
@@ -80,6 +92,8 @@
 		{#if !recipe}
 			<section
 				class="brutalist-border flex flex-1 flex-col justify-center bg-cold-console-white p-8 shadow-hard lg:p-12"
+				in:fly={sectionEnter(0)}
+				out:fade={{ duration: 130 }}
 			>
 				<div
 					class="mb-4 flex items-center gap-3 font-mono text-sm font-bold tracking-widest text-molten-commit-orange uppercase"
@@ -107,6 +121,8 @@
 		{:else if recipe}
 			<section
 				class="brutalist-border relative overflow-hidden bg-cold-console-white p-6 shadow-hard lg:p-12"
+				in:fly={sectionEnter(0)}
+				out:fade={{ duration: 110 }}
 			>
 				<div class="schematic-grid absolute inset-0 opacity-10"></div>
 				<div class="relative z-10 flex flex-col gap-5">
@@ -145,6 +161,8 @@
 
 			<section
 				class="brutalist-border flex flex-col overflow-hidden bg-cold-console-white shadow-hard lg:flex-row"
+				in:fly={sectionEnter(1)}
+				out:fade={{ duration: 110 }}
 			>
 				<section class="w-full border-b-4 border-signal-black lg:w-1/2 lg:border-r-4 lg:border-b-0">
 					<div
@@ -204,7 +222,11 @@
 				</section>
 			</section>
 
-			<section class="brutalist-border bg-surface p-4 shadow-hard">
+			<section
+				class="brutalist-border bg-surface p-4 shadow-hard"
+				in:fly={sectionEnter(2)}
+				out:fade={{ duration: 120 }}
+			>
 				<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 					<div class="max-w-3xl">
 						<div class="mb-2 font-display text-xl font-bold tracking-tight uppercase">
@@ -229,7 +251,11 @@
 	</main>
 
 	{#if recipe}
-		<div class="fixed right-4 bottom-4 z-50 flex flex-col gap-3 sm:right-6 sm:bottom-6 sm:flex-row">
+		<div
+			class="fixed right-4 bottom-4 z-50 flex flex-col gap-3 sm:right-6 sm:bottom-6 sm:flex-row"
+			in:fly={sectionEnter(3)}
+			out:fade={{ duration: 120 }}
+		>
 			<button
 				type="button"
 				onclick={() => goto(resolve(`/vault/${recipe.id}/edit`))}

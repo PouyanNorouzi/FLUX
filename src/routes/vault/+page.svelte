@@ -1,7 +1,10 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { flip } from 'svelte/animate';
+	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
+	import { fade, fly } from 'svelte/transition';
 
 	let { data } = $props();
 
@@ -37,6 +40,20 @@
 			return matchQuery && matchTag;
 		})
 	);
+
+	const gridState = $derived(
+		loading ? 'loading' : filteredRecords.length === 0 ? 'empty' : `list:${activeTag}:${query.trim()}`
+	);
+
+	function rowEnter(/** @type {number} */ index) {
+		return {
+			y: 18,
+			opacity: 0.3,
+			duration: 260,
+			delay: Math.min(index, 8) * 36,
+			easing: cubicOut
+		};
+	}
 </script>
 
 <svelte:head>
@@ -176,42 +193,61 @@
 
 			<!-- Data Grid Body -->
 			<div class="flex-1 overflow-y-auto">
-				{#if loading}
-					{#each [0, 1, 2] as i (i)}
-						<div class="skeleton-hash h-14 border-b border-signal-black"></div>
-					{/each}
-				{:else if filteredRecords.length === 0}
-					<div class="flex h-64 flex-col items-center justify-center opacity-50">
-						<span class="material-symbols-outlined mb-2 text-4xl">database</span>
-						<p class="font-mono text-lg font-bold tracking-widest uppercase">
-							0 RECORDS FOUND IN FLUX_DB
-						</p>
-					</div>
-				{:else}
-					{#each filteredRecords as record (record.id)}
-						<a
-							href={resolve(`/vault/${record.id}`)}
-							class="data-row grid grid-cols-12 gap-4 border-b border-signal-black px-6 py-3 text-inherit no-underline transition-colors"
+				{#key gridState}
+					{#if loading}
+						<div in:fade={{ duration: 180 }} out:fade={{ duration: 140 }}>
+							{#each [0, 1, 2] as i (i)}
+								<div
+									class="skeleton-hash h-14 border-b border-signal-black"
+									in:fade={{ duration: 170, delay: i * 70 }}
+								></div>
+							{/each}
+						</div>
+					{:else if filteredRecords.length === 0}
+						<div
+							class="flex h-64 flex-col items-center justify-center opacity-50"
+							in:fly={{ y: 18, opacity: 0.35, duration: 260, easing: cubicOut }}
+							out:fade={{ duration: 140 }}
 						>
-							<div class="col-span-2 font-mono text-sm opacity-60">{record.id}</div>
-							<div
-								class="col-span-6 truncate font-display text-lg leading-tight font-bold uppercase sm:col-span-5"
-							>
-								{record.title}
-							</div>
-							<div class="hidden items-center gap-2 sm:col-span-3 sm:flex sm:flex-wrap">
-								{#each record.tags as tag (tag)}
-									<span class="tag-badge">{tag}</span>
-								{/each}
-							</div>
-							<div
-								class="col-span-4 flex flex-col justify-center text-right font-mono text-xs opacity-60 sm:col-span-2"
-							>
-								{record.ts}
-							</div>
-						</a>
-					{/each}
-				{/if}
+							<span class="material-symbols-outlined mb-2 text-4xl">database</span>
+							<p class="font-mono text-lg font-bold tracking-widest uppercase">
+								0 RECORDS FOUND IN FLUX_DB
+							</p>
+						</div>
+					{:else}
+						<div in:fade={{ duration: 170 }} out:fade={{ duration: 130 }}>
+							{#each filteredRecords as record, idx (record.id)}
+								<div
+									animate:flip={{ duration: 260, easing: cubicOut }}
+									in:fly={rowEnter(idx)}
+									out:fade={{ duration: 150 }}
+								>
+									<a
+										href={resolve(`/vault/${record.id}`)}
+										class="data-row grid grid-cols-12 gap-4 border-b border-signal-black px-6 py-3 text-inherit no-underline transition-colors"
+									>
+										<div class="col-span-2 font-mono text-sm opacity-60">{record.id}</div>
+										<div
+											class="col-span-6 truncate font-display text-lg leading-tight font-bold uppercase sm:col-span-5"
+										>
+											{record.title}
+										</div>
+										<div class="hidden items-center gap-2 sm:col-span-3 sm:flex sm:flex-wrap">
+											{#each record.tags as tag (tag)}
+												<span class="tag-badge">{tag}</span>
+											{/each}
+										</div>
+										<div
+											class="col-span-4 flex flex-col justify-center text-right font-mono text-xs opacity-60 sm:col-span-2"
+										>
+											{record.ts}
+										</div>
+									</a>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				{/key}
 			</div>
 
 			<!-- Grid Footer Stats -->

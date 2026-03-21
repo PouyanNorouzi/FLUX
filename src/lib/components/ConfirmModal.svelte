@@ -1,4 +1,7 @@
 <script>
+	import { cubicOut } from 'svelte/easing';
+	import { fade, fly, scale } from 'svelte/transition';
+
 	/**
 	 * @type {{
 	 *   open: boolean,
@@ -33,11 +36,17 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="confirm-modal-title"
+		in:fade={{ duration: 120 }}
+		out:fade={{ duration: 100 }}
 	>
-		<div class="brutalist-border w-full max-w-lg bg-cold-console-white shadow-hard">
+		<div
+			class="brutalist-border w-full max-w-lg bg-cold-console-white shadow-hard"
+			in:fly={{ y: 18, duration: 180, easing: cubicOut }}
+			out:scale={{ start: 1, opacity: 0.8, duration: 130 }}
+		>
 			<div class="bg-signal-black px-6 py-4">
 				<div
-					class="mb-1 flex items-center gap-2 font-mono text-xs font-bold tracking-widest text-molten-commit-orange uppercase"
+					class="motion-enter mb-1 flex items-center gap-2 font-mono text-xs font-bold tracking-widest text-molten-commit-orange uppercase"
 				>
 					<span class="material-symbols-outlined text-base">warning</span>
 					{warningLabel}
@@ -61,7 +70,7 @@
 						type="button"
 						onclick={onConfirm}
 						disabled={loading}
-						class="brutalist-border flex-1 bg-molten-commit-orange px-6 py-3 font-display text-base font-bold uppercase shadow-hard transition-opacity hover:opacity-80 disabled:opacity-50"
+						class="motion-press brutalist-border brutalist-button flex-1 bg-molten-commit-orange px-6 py-3 font-display text-base font-bold uppercase shadow-hard hover:opacity-80 disabled:opacity-50"
 					>
 						<span class="flex items-center justify-center gap-2 text-signal-black">
 							{#if loading}
@@ -82,7 +91,7 @@
 						type="button"
 						onclick={onCancel}
 						disabled={loading}
-						class="brutalist-border flex-1 bg-cold-console-white px-6 py-3 font-display text-base font-bold uppercase shadow-hard transition-colors hover:bg-signal-black hover:text-cold-console-white disabled:opacity-50"
+						class="motion-press brutalist-border brutalist-button flex-1 bg-cold-console-white px-6 py-3 font-display text-base font-bold uppercase shadow-hard hover:bg-signal-black hover:text-cold-console-white disabled:opacity-50"
 					>
 						{cancelLabel}
 					</button>
