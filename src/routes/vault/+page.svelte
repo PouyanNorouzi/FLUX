@@ -127,7 +127,9 @@
 
 			<!-- Ingest CTA -->
 			<button
-				class="brutalist-border brutalist-button group mt-auto flex items-center justify-center gap-2 bg-signal-black px-4 py-3 font-display text-base font-bold tracking-wider text-cold-console-white uppercase shadow-hard"
+				type="button"
+				onclick={() => goto(resolve('/vault/ingest'))}
+				class="brutalist-border brutalist-button group mt-auto flex items-center justify-center gap-2 bg-signal-black px-4 py-3 font-display text-base font-bold tracking-wider text-cold-console-white uppercase shadow-hard transition-colors hover:bg-molten-commit-orange hover:text-signal-black"
 			>
 				<span
 					class="material-symbols-outlined text-xl transition-transform group-hover:rotate-90"

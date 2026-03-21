@@ -445,6 +445,107 @@ export function getRecipeSummaries() {
 
 /** @param {string} recipeId */
 export function getRecipeDetail(recipeId) {
-	const recipe = RAW_RECIPES.find((entry) => entry.flux_id.toLowerCase() === recipeId.toLowerCase());
+	const recipe = RAW_RECIPES.find(
+		(entry) => entry.flux_id.toLowerCase() === recipeId.toLowerCase()
+	);
 	return recipe ? parseRecipeDetail(recipe) : null;
 }
+
+/**
+ * Generate a new flux_id in hex format.
+ * In production, this would come from the database schema or a proper ID generator.
+ * For in-memory use, we'll generate a pseudo-random 4-digit hex value.
+ */
+function generateFluxId() {
+	const randomHex = Math.floor(Math.random() * 0xffff)
+		.toString(16)
+		.toUpperCase()
+		.padStart(4, '0');
+	return `0x${randomHex}`;
+}
+
+/**
+ * Generate a modified_hex timestamp in the same format as existing records.
+ * This is a naive hex representation of a Unix timestamp,
+ * following the pattern seen in RAW_RECIPES.
+ */
+function generateModifiedHex() {
+	const timestamp = Math.floor(Date.now() / 1000);
+	return timestamp.toString(16).toUpperCase();
+}
+
+/**
+ * In-memory recipe repository implementation.
+ * Wraps RAW_RECIPES and provides read/write operations for the application layer.
+ */
+export class InMemoryRecipeRepository {
+	/**
+	 * @param {typeof RAW_RECIPES} store
+	 */
+	constructor(store) {
+		this.store = store;
+	}
+
+	getSummaries() {
+		return getRecipeSummaries();
+	}
+
+	/**
+	 * @param {string} id
+	 */
+	getDetail(id) {
+		return getRecipeDetail(id);
+	}
+
+	getStats() {
+		return getVaultStats();
+	}
+
+	/**
+	 * Create a new recipe from an ingest input payload.
+	 * Maps application-level shape to RawRecipe and mutates the in-memory store.
+	 *
+	 * @param {import('../recipe-repository').RecipeCreateInput} input
+	 * @returns {import('../recipe-repository').RecipeCreateResult}
+	 */
+	create(input) {
+		const fluxId = generateFluxId();
+
+		/** @type {RawRecipe} */
+		const newRecipe = {
+			flux_id: fluxId,
+			title: input.title,
+			tag_codes: input.tags,
+			modified_hex: generateModifiedHex(),
+			yield_label: input.yieldLabel,
+			time_minutes: Number(input.timeMinutes),
+			sys_flags: input.systemFlags,
+			ingredients: input.ingredients.map((/** @type {any} */ row) => ({
+				qty: row.quantity,
+				unit: row.unit,
+				name: row.name,
+				note: row.note || undefined
+			})),
+			steps: input.steps.map((/** @type {any} */ row) => row.instruction),
+			parse_trace: {
+				record_bytes: Number(input.parserMetadata.recordBytes) || 256,
+				checksum_hex: input.parserMetadata.checksumHex || '0x000000',
+				struct_name: input.parserMetadata.structName || 'recipe_record_v2',
+				field_count: Number(input.parserMetadata.fieldCount) || 10
+			}
+		};
+
+		this.store.push(newRecipe);
+
+		return {
+			success: true,
+			id: fluxId
+		};
+	}
+}
+
+/**
+ * Singleton instance of the in-memory repository.
+ * In production, this would be replaced with a poudb-backed implementation.
+ */
+export const recipeRepository = new InMemoryRecipeRepository(RAW_RECIPES);
