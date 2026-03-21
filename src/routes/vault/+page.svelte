@@ -188,8 +188,9 @@
 					</div>
 				{:else}
 					{#each filteredRecords as record (record.id)}
-						<div
-							class="data-row grid grid-cols-12 gap-4 border-b border-signal-black px-6 py-3 transition-colors"
+						<a
+							href={resolve(`/vault/${record.id}`)}
+							class="data-row grid grid-cols-12 gap-4 border-b border-signal-black px-6 py-3 text-inherit no-underline transition-colors"
 						>
 							<div class="col-span-2 font-mono text-sm opacity-60">{record.id}</div>
 							<div
@@ -207,7 +208,7 @@
 							>
 								{record.ts}
 							</div>
-						</div>
+						</a>
 					{/each}
 				{/if}
 			</div>
