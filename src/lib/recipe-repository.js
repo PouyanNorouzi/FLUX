@@ -24,23 +24,12 @@
 
 /**
  * @typedef {{
- * 	recordBytes: string,
- * 	checksumHex: string,
- * 	structName: string,
- * 	fieldCount: string
- * }} IngestParserMetadata
- */
-
-/**
- * @typedef {{
  * 	title: string,
  * 	yieldLabel: string,
  * 	timeMinutes: string,
  * 	tags: string[],
- * 	systemFlags: string[],
  * 	ingredients: IngestIngredientRow[],
- * 	steps: IngestStepRow[],
- * 	parserMetadata: IngestParserMetadata
+ * 	steps: IngestStepRow[]
  * }} RecipeCreateInput
  */
 

@@ -406,7 +406,6 @@ function parseRecipeDetail(raw) {
 		timeLabel: `${raw.time_minutes} MINS`,
 		yieldLabel: raw.yield_label,
 		categories: raw.tag_codes,
-		systemFlags: raw.sys_flags,
 		ingredients: raw.ingredients.map((ingredient, index) => ({
 			id: `${raw.flux_id}-ingredient-${index + 1}`,
 			label: parseIngredientLabel(ingredient),
@@ -510,20 +509,13 @@ export class InMemoryRecipeRepository {
 			yieldLabel: raw.yield_label,
 			timeMinutes: String(raw.time_minutes),
 			tags: [...raw.tag_codes],
-			systemFlags: [...raw.sys_flags],
 			ingredients: raw.ingredients.map((ing) => ({
 				quantity: ing.qty,
 				unit: ing.unit,
 				name: ing.name,
 				note: ing.note ?? ''
 			})),
-			steps: raw.steps.map((instruction) => ({ instruction })),
-			parserMetadata: {
-				recordBytes: String(raw.parse_trace.record_bytes),
-				checksumHex: raw.parse_trace.checksum_hex,
-				structName: raw.parse_trace.struct_name,
-				fieldCount: String(raw.parse_trace.field_count)
-			}
+			steps: raw.steps.map((instruction) => ({ instruction }))
 		};
 	}
 
@@ -549,7 +541,7 @@ export class InMemoryRecipeRepository {
 			modified_hex: generateModifiedHex(),
 			yield_label: input.yieldLabel,
 			time_minutes: Number(input.timeMinutes),
-			sys_flags: input.systemFlags,
+			sys_flags: [],
 			ingredients: input.ingredients.map((/** @type {any} */ row) => ({
 				qty: row.quantity,
 				unit: row.unit,
@@ -558,10 +550,10 @@ export class InMemoryRecipeRepository {
 			})),
 			steps: input.steps.map((/** @type {any} */ row) => row.instruction),
 			parse_trace: {
-				record_bytes: Number(input.parserMetadata.recordBytes) || 256,
-				checksum_hex: input.parserMetadata.checksumHex || '0x000000',
-				struct_name: input.parserMetadata.structName || 'recipe_record_v2',
-				field_count: Number(input.parserMetadata.fieldCount) || 10
+				record_bytes: 256,
+				checksum_hex: '0x000000',
+				struct_name: 'recipe_record_v2',
+				field_count: 10
 			}
 		};
 
@@ -592,20 +584,14 @@ export class InMemoryRecipeRepository {
 			modified_hex: generateModifiedHex(),
 			yield_label: input.yieldLabel,
 			time_minutes: Number(input.timeMinutes),
-			sys_flags: input.systemFlags,
+			sys_flags: this.store[idx].sys_flags,
 			ingredients: input.ingredients.map((row) => ({
 				qty: row.quantity,
 				unit: row.unit,
 				name: row.name,
 				note: row.note || undefined
 			})),
-			steps: input.steps.map((row) => row.instruction),
-			parse_trace: {
-				record_bytes: Number(input.parserMetadata.recordBytes) || 256,
-				checksum_hex: input.parserMetadata.checksumHex || '0x000000',
-				struct_name: input.parserMetadata.structName || 'recipe_record_v2',
-				field_count: Number(input.parserMetadata.fieldCount) || 10
-			}
+			steps: input.steps.map((row) => row.instruction)
 		};
 
 		return { success: true, id };

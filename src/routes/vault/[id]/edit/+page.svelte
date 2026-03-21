@@ -22,8 +22,7 @@
 	/**
 	 * @typedef {{id: string, quantity: string, unit: string, name: string, note?: string}} DraftIngredient
 	 * @typedef {{id: string, instruction: string}} DraftStep
-	 * @typedef {{recordBytes: string, checksumHex: string, structName: string, fieldCount: string}} DraftParserMetadata
-	 * @typedef {{title: string, yieldLabel: string, timeMinutes: string, tags: string[], systemFlags: string[], ingredients: DraftIngredient[], steps: DraftStep[], parserMetadata: DraftParserMetadata}} RecipeDraft
+	 * @typedef {{title: string, yieldLabel: string, timeMinutes: string, tags: string[], ingredients: DraftIngredient[], steps: DraftStep[]}} RecipeDraft
 	 */
 
 	let { data } = $props();
@@ -45,15 +44,8 @@
 				yieldLabel: '',
 				timeMinutes: '',
 				tags: [],
-				systemFlags: [],
 				ingredients: [],
-				steps: [],
-				parserMetadata: {
-					recordBytes: '256',
-					checksumHex: '0x000000',
-					structName: 'recipe_record_v2',
-					fieldCount: '10'
-				}
+				steps: []
 			};
 		}
 		return {
@@ -61,7 +53,6 @@
 			yieldLabel: src.yieldLabel,
 			timeMinutes: src.timeMinutes,
 			tags: [...src.tags],
-			systemFlags: [...src.systemFlags],
 			ingredients: src.ingredients.map((ing) => ({
 				id: generateId(),
 				quantity: ing.quantity,
@@ -72,8 +63,7 @@
 			steps: src.steps.map((s) => ({
 				id: generateId(),
 				instruction: s.instruction
-			})),
-			parserMetadata: { ...src.parserMetadata }
+			}))
 		};
 	}
 
@@ -81,7 +71,6 @@
 	let draft = $state(buildDraftFromData());
 
 	let newTag = $state('');
-	let newFlag = $state('');
 	/** @type {{quantity: string, unit: string, name: string, note: string}} */
 	let newIngredient = $state({ quantity: '', unit: '', name: '', note: '' });
 	let newStep = $state('');
@@ -121,9 +110,7 @@
 	}
 
 	function updateStep(/** @type {string} */ id, /** @type {string} */ instruction) {
-		draft.steps = draft.steps.map((step) =>
-			step.id === id ? { ...step, instruction } : step
-		);
+		draft.steps = draft.steps.map((step) => (step.id === id ? { ...step, instruction } : step));
 	}
 
 	// Tags mutations
@@ -137,17 +124,6 @@
 		draft.tags = draft.tags.filter((t) => t !== tag);
 	}
 
-	// Flags mutations
-	function addFlag(value = newFlag) {
-		const normalized = value.trim().toUpperCase();
-		if (!normalized || draft.systemFlags.includes(normalized)) return false;
-		draft.systemFlags.push(normalized);
-		return true;
-	}
-	function removeFlag(/** @type {string} */ flag) {
-		draft.systemFlags = draft.systemFlags.filter((f) => f !== flag);
-	}
-
 	async function handleSubmit(/** @type {SubmitEvent} */ e) {
 		e.preventDefault();
 		loading = true;
@@ -159,7 +135,6 @@
 		formData.append('timeMinutes', draft.timeMinutes);
 
 		draft.tags.forEach((tag, idx) => formData.append(`tags[${idx}]`, tag));
-		draft.systemFlags.forEach((flag, idx) => formData.append(`systemFlags[${idx}]`, flag));
 		draft.ingredients.forEach((ing, idx) => {
 			formData.append(`ingredients[${idx}].quantity`, ing.quantity);
 			formData.append(`ingredients[${idx}].unit`, ing.unit);
@@ -169,10 +144,6 @@
 		draft.steps.forEach((step, idx) =>
 			formData.append(`steps[${idx}].instruction`, step.instruction)
 		);
-		formData.append('parserMetadata.recordBytes', draft.parserMetadata.recordBytes);
-		formData.append('parserMetadata.checksumHex', draft.parserMetadata.checksumHex);
-		formData.append('parserMetadata.structName', draft.parserMetadata.structName);
-		formData.append('parserMetadata.fieldCount', draft.parserMetadata.fieldCount);
 
 		try {
 			const response = await fetch('?/update', { method: 'POST', body: formData });
@@ -338,23 +309,7 @@
 					</FormSection>
 				</div>
 
-				<div in:fly={sectionEnter(2)} out:fade={{ duration: 110 }}>
-					<FormSection title="SYSTEM_FLAGS">
-						<TagEditor
-							label="newFlag"
-							placeholder="FLAG NAME..."
-							tags={draft.systemFlags}
-							bind:inputValue={newFlag}
-							errorMessage={errors.systemFlags}
-							onAdd={(value) => {
-								if (addFlag(value)) newFlag = '';
-							}}
-							onRemove={removeFlag}
-						/>
-					</FormSection>
-				</div>
-
-				<div in:fly={sectionEnter(3)} out:fade={{ duration: 120 }}>
+				<div in:fly={sectionEnter(2)} out:fade={{ duration: 120 }}>
 					<FormSection title="REQUIREMENTS_">
 						{#if errors.ingredients}
 							<div
@@ -465,7 +420,7 @@
 					</FormSection>
 				</div>
 
-				<div in:fly={sectionEnter(4)} out:fade={{ duration: 120 }}>
+				<div in:fly={sectionEnter(3)} out:fade={{ duration: 120 }}>
 					<FormSection title="EXECUTION_">
 						{#if errors.steps}
 							<div
@@ -517,75 +472,6 @@
 							>
 								[+ ADD STEP]
 							</button>
-						</div>
-					</FormSection>
-				</div>
-
-				<div in:fly={sectionEnter(5)} out:fade={{ duration: 120 }}>
-					<FormSection
-						title="PARSE_METADATA"
-						titleClass="text-xl"
-						sectionClass="bg-surface p-6 shadow-hard lg:p-8"
-					>
-						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							<div>
-								<label
-									for="recordBytes"
-									class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-								>
-									RECORD_BYTES
-								</label>
-								<input
-									id="recordBytes"
-									type="number"
-									bind:value={draft.parserMetadata.recordBytes}
-									class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
-								/>
-							</div>
-							<div>
-								<label
-									for="checksumHex"
-									class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-								>
-									CHECKSUM_HEX
-								</label>
-								<input
-									id="checksumHex"
-									type="text"
-									bind:value={draft.parserMetadata.checksumHex}
-									placeholder="0x000000"
-									class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
-								/>
-							</div>
-							<div>
-								<label
-									for="structName"
-									class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-								>
-									STRUCT_NAME
-								</label>
-								<input
-									id="structName"
-									type="text"
-									bind:value={draft.parserMetadata.structName}
-									placeholder="recipe_record_v2"
-									class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-molten-commit-orange"
-								/>
-							</div>
-							<div>
-								<label
-									for="fieldCount"
-									class="block text-[10px] font-bold tracking-widest text-muted uppercase"
-								>
-									FIELD_COUNT
-								</label>
-								<input
-									id="fieldCount"
-									type="number"
-									bind:value={draft.parserMetadata.fieldCount}
-									class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
-								/>
-							</div>
 						</div>
 					</FormSection>
 				</div>

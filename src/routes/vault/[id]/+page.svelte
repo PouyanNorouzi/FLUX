@@ -173,7 +173,7 @@
 								{recipe.title}
 							</h1>
 							<div class="flex flex-wrap gap-2">
-								{#each [...recipe.categories, ...recipe.systemFlags] as chip (chip)}
+								{#each recipe.categories as chip (chip)}
 									<TagChip label={chip} />
 								{/each}
 							</div>
@@ -212,14 +212,6 @@
 									</span>
 									<div class="flex flex-col gap-1">
 										<span class="leading-6">{ingredient.label}</span>
-										<span class="text-[10px] tracking-widest text-muted">
-											PARSED -> {ingredient.quantity}
-											{ingredient.unit}
-											{ingredient.name}
-											{#if ingredient.note}
-												// {ingredient.note}
-											{/if}
-										</span>
 									</div>
 								</li>
 							{/each}
@@ -251,38 +243,13 @@
 				</section>
 			</section>
 
-			<section
-				class="brutalist-border bg-surface p-4 shadow-hard"
-				in:fly={sectionEnter(2)}
-				out:fade={{ duration: 120 }}
-			>
-				<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-					<div class="max-w-3xl">
-						<div class="mb-2 font-display text-xl font-bold tracking-tight uppercase">
-							PARSE_VERIFICATION_
-						</div>
-						<p class="font-mono text-xs leading-6 text-muted uppercase">
-							THIS SCREEN IS DRIVEN BY A MOCKED READ MODEL GENERATED FROM RAW CUSTOM C DB FIELDS.
-							USE IT TO VERIFY THAT TITLE, META, INGREDIENT ARRAYS, AND EXECUTION STEP ORDER PARSE
-							CORRECTLY BEFORE BACKEND INTEGRATION LANDS.
-						</p>
-					</div>
-					<div
-						class="grid grid-cols-2 gap-2 font-mono text-[10px] uppercase sm:grid-cols-3 xl:grid-cols-5"
-					>
-						{#each verificationFields as field (field.label)}
-							<MetaField label={field.label} value={field.value} mode="compact" />
-						{/each}
-					</div>
-				</div>
-			</section>
 		{/if}
 	</main>
 
 	{#if recipe}
 		<div
 			class="fixed right-4 bottom-4 z-50 flex flex-col gap-3 sm:right-6 sm:bottom-6 sm:flex-row"
-			in:fly={sectionEnter(3)}
+			in:fly={sectionEnter(2)}
 			out:fade={{ duration: 120 }}
 		>
 			<button

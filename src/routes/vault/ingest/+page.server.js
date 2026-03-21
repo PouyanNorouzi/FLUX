@@ -27,15 +27,8 @@ export const actions = {
 					yieldLabel: String(fd.get('yieldLabel') ?? ''),
 					timeMinutes: String(fd.get('timeMinutes') ?? ''),
 					tags: [],
-					systemFlags: [],
 					ingredients: [],
-					steps: [],
-					parserMetadata: {
-						recordBytes: String(fd.get('parserMetadata.recordBytes') ?? '256'),
-						checksumHex: String(fd.get('parserMetadata.checksumHex') ?? '0x000000'),
-						structName: String(fd.get('parserMetadata.structName') ?? 'recipe_record_v2'),
-						fieldCount: String(fd.get('parserMetadata.fieldCount') ?? '10')
-					}
+					steps: []
 				};
 
 				// Parse tags
@@ -46,16 +39,6 @@ export const actions = {
 						result.tags.push(tag);
 					}
 					tagIdx++;
-				}
-
-				// Parse system flags
-				let flagIdx = 0;
-				while (fd.has(`systemFlags[${flagIdx}]`)) {
-					const flag = fd.get(`systemFlags[${flagIdx}]`);
-					if (typeof flag === 'string') {
-						result.systemFlags.push(flag);
-					}
-					flagIdx++;
 				}
 
 				// Parse ingredients
