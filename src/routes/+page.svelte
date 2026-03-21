@@ -1,2 +1,118 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script>
+	import Button from '$lib/components/Button.svelte';
+	import Input from '$lib/components/Input.svelte';
+
+	let passkey = $state('');
+	let error = $state(false);
+	let connected = $state(false);
+	let loading = $state(false);
+
+	function handleSubmit() {
+		if (!passkey.trim()) {
+			error = true;
+			return;
+		}
+		error = false;
+		loading = true;
+		setTimeout(() => {
+			loading = false;
+			connected = true;
+		}, 800);
+	}
+</script>
+
+<svelte:head>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+		rel="stylesheet"
+	/>
+</svelte:head>
+
+<div class="flex min-h-screen items-center justify-center p-4">
+	<!-- Screen flash overlay -->
+	{#if connected}
+		<div
+			class="pointer-events-none fixed inset-0 z-50"
+			style="animation: flash 0.3s ease-out forwards;"
+		></div>
+	{/if}
+
+	<!-- Main card -->
+	<main
+		class="brutalist-border z-10 flex w-full max-w-100 flex-col bg-cold-console-white shadow-hard"
+	>
+		<!-- Black header -->
+		<header
+			class="flex items-center justify-between border-b-4 border-signal-black bg-signal-black p-4 text-cold-console-white"
+		>
+			<h1
+				class="flex items-center font-display text-xl font-bold tracking-tighter uppercase md:text-2xl"
+			>
+				<span
+					class="material-symbols-outlined mr-2 text-molten-commit-orange"
+					style="font-variation-settings: 'FILL' 1;">terminal</span
+				>
+				FLUX SECURE ACCESS<span class="cursor-blink ml-1 text-molten-commit-orange">_</span>
+			</h1>
+		</header>
+
+		<!-- Status ticker -->
+		<div
+			class="flex items-center justify-between border-b-4 border-signal-black bg-surface px-4 py-2 font-mono text-[10px] font-bold text-muted uppercase"
+		>
+			<span>POUDB_CONN_ACTIVE</span>
+			<span>PORT: 8080 TCP</span>
+		</div>
+
+		<!-- Body -->
+		{#if !connected}
+			<!-- Auth form -->
+			<form
+				class="flex flex-col gap-6 p-6 md:p-8"
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleSubmit();
+				}}
+			>
+				<Input
+					id="passkey"
+					label="FLUX_AUTH_TOKEN"
+					type="password"
+					placeholder="> POUDB_PASSKEY..."
+					bind:value={passkey}
+					{error}
+					errorMessage="ERR_AUTH_FAILED: INVALID_TOKEN"
+					icon="key"
+				/>
+				<Button type="submit" {loading} icon="database">[ WRITE TO POUDB ]</Button>
+			</form>
+		{:else}
+			<!-- CONN_ESTABLISHED panel -->
+			<div class="flex flex-col gap-4 p-6 md:p-8">
+				<div class="flex flex-col gap-3 border-2 border-signal-black bg-surface p-6">
+					<div class="flex items-center gap-3">
+						<span class="h-3 w-3 shrink-0 animate-pulse rounded-full bg-daemon-green-pulse"></span>
+						<span class="font-display text-xl font-bold tracking-tighter uppercase"
+							>AUTH_CONFIRMED</span
+						>
+					</div>
+					<p class="font-mono text-xs leading-relaxed tracking-wider text-muted uppercase">
+						POUDB_CONN_ESTABLISHED // ACCESS GRANTED<br />
+						SESSION ACTIVE · PORT 8080 TCP
+					</p>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Footer -->
+		<footer
+			class="mt-auto flex items-center justify-between bg-signal-black p-2 font-mono text-[10px] text-muted"
+		>
+			<span>FLUX v1.0.4 build-8a9b2c</span>
+			<span class="flex items-center gap-1">
+				<span class="h-2 w-2 animate-pulse rounded-full bg-molten-commit-orange"></span>
+				POUDB_ONLINE
+			</span>
+		</footer>
+	</main>
+</div>
