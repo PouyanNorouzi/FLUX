@@ -1,6 +1,10 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import MetaField from '$lib/components/MetaField.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
+	import TagChip from '$lib/components/TagChip.svelte';
 	import { toastStore } from '$lib/stores/toast.js';
 
 	let { data } = $props();
@@ -65,28 +69,12 @@
 </svelte:head>
 
 <div class="flex min-h-screen flex-col bg-cold-console-white">
-	<header class="sticky top-0 z-40 border-b-4 border-signal-black bg-surface px-4 py-4 lg:px-8">
-		<div class="mx-auto flex w-full max-w-360 items-center justify-between gap-4">
-			<button
-				type="button"
-				onclick={returnToIndex}
-				class="group flex items-center gap-2 font-display text-base font-bold tracking-tight uppercase transition-colors hover:text-molten-commit-orange lg:text-lg"
-			>
-				<span
-					class="material-symbols-outlined transition-transform group-hover:-translate-x-1"
-					style="font-variation-settings: 'FILL' 1;"
-				>
-					arrow_back
-				</span>
-				RETURN TO INDEX
-			</button>
-			<div
-				class="text-right font-mono text-[10px] font-bold tracking-widest text-muted uppercase sm:text-xs"
-			>
-				SYS_READ_ONLY // POUDB_CONN_ACTIVE // LATENCY: {data.stats.latency}
-			</div>
-		</div>
-	</header>
+	<PageHeader
+		title="RECIPE SCHEMATIC"
+		backLabel="RETURN TO INDEX"
+		statusText={`SYS_READ_ONLY // POUDB_CONN_ACTIVE // LATENCY: ${data.stats.latency}`}
+		onBack={returnToIndex}
+	/>
 
 	<main class="mx-auto flex w-full max-w-360 flex-1 flex-col gap-8 p-4 lg:p-8">
 		{#if !recipe}
@@ -141,23 +129,14 @@
 							</h1>
 							<div class="flex flex-wrap gap-2">
 								{#each [...recipe.categories, ...recipe.systemFlags] as chip (chip)}
-									<span
-										class="border border-signal-black bg-surface px-2 py-1 font-mono text-[11px] uppercase"
-									>
-										{chip}
-									</span>
+									<TagChip label={chip} />
 								{/each}
 							</div>
 						</div>
 
 						<div class="grid min-w-full grid-cols-2 gap-3 xl:min-w-md xl:grid-cols-3">
 							{#each verificationFields as field (field.label)}
-								<div
-									class="border-2 border-signal-black bg-surface p-3 font-mono text-[10px] uppercase"
-								>
-									<div class="mb-1 text-muted">{field.label}</div>
-									<div class="text-xs font-bold break-all text-signal-black">{field.value}</div>
-								</div>
+								<MetaField label={field.label} value={field.value} mode="panel" />
 							{/each}
 						</div>
 					</div>
@@ -241,10 +220,7 @@
 						class="grid grid-cols-2 gap-2 font-mono text-[10px] uppercase sm:grid-cols-3 xl:grid-cols-5"
 					>
 						{#each verificationFields as field (field.label)}
-							<div class="border border-signal-black bg-cold-console-white px-3 py-2">
-								<div class="text-muted">{field.label}</div>
-								<div class="mt-1 font-bold break-all">{field.value}</div>
-							</div>
+							<MetaField label={field.label} value={field.value} mode="compact" />
 						{/each}
 					</div>
 				</div>
@@ -281,70 +257,16 @@
 		</div>
 	{/if}
 
-	{#if showDeleteModal}
-		<div
-			class="fixed inset-0 z-50 flex items-center justify-center bg-signal-black/70 p-4"
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="delete-modal-title"
-		>
-			<div class="brutalist-border w-full max-w-lg bg-cold-console-white shadow-hard">
-				<div class="bg-signal-black px-6 py-4">
-					<div
-						class="mb-1 flex items-center gap-2 font-mono text-xs font-bold tracking-widest text-molten-commit-orange uppercase"
-					>
-						<span class="material-symbols-outlined text-base">warning</span>
-						DESTRUCTIVE_OP // CONFIRM_REQUIRED
-					</div>
-					<h2
-						id="delete-modal-title"
-						class="font-display text-2xl font-bold tracking-tight text-cold-console-white uppercase"
-					>
-						PURGE RECORD?
-					</h2>
-				</div>
-				<div class="p-6">
-					<p class="mb-2 font-mono text-sm leading-7 uppercase">
-						<span class="font-bold">{recipe?.title}</span>
-					</p>
-					<p class="font-mono text-xs leading-6 text-muted uppercase">
-						THIS WILL PERMANENTLY REMOVE FLUX_ID {recipe?.id} FROM POUDB. THIS ACTION CANNOT BE UNDONE.
-					</p>
-					<div class="mt-6 flex flex-col gap-3 sm:flex-row">
-						<button
-							type="button"
-							onclick={confirmDelete}
-							disabled={deleteLoading}
-							class="brutalist-border flex-1 bg-molten-commit-orange px-6 py-3 font-display text-base font-bold uppercase shadow-hard transition-opacity hover:opacity-80 disabled:opacity-50"
-						>
-							<span class="flex items-center justify-center gap-2 text-signal-black">
-								{#if deleteLoading}
-									<span class="material-symbols-outlined animate-pulse text-base"
-										>hourglass_empty</span
-									>
-									PURGING...
-								{:else}
-									<span
-										class="material-symbols-outlined text-base"
-										style="font-variation-settings: 'FILL' 1;">delete_forever</span
-									>
-									CONFIRM PURGE
-								{/if}
-							</span>
-						</button>
-						<button
-							type="button"
-							onclick={() => (showDeleteModal = false)}
-							disabled={deleteLoading}
-							class="brutalist-border flex-1 bg-cold-console-white px-6 py-3 font-display text-base font-bold uppercase shadow-hard transition-colors hover:bg-signal-black hover:text-cold-console-white disabled:opacity-50"
-						>
-							ABORT
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	{/if}
+	<ConfirmModal
+		open={showDeleteModal}
+		title="PURGE RECORD?"
+		itemLabel={recipe?.title ?? ''}
+		message={`THIS WILL PERMANENTLY REMOVE FLUX_ID ${recipe?.id ?? ''} FROM POUDB. THIS ACTION CANNOT BE UNDONE.`}
+		confirmLabel="CONFIRM PURGE"
+		loading={deleteLoading}
+		onConfirm={confirmDelete}
+		onCancel={() => (showDeleteModal = false)}
+	/>
 </div>
 
 <style>
