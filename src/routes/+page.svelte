@@ -1,4 +1,6 @@
 <script>
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
 
@@ -17,6 +19,7 @@
 		setTimeout(() => {
 			loading = false;
 			connected = true;
+			goto(resolve('/vault'));
 		}, 800);
 	}
 </script>

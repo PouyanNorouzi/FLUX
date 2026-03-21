@@ -142,4 +142,28 @@
 	.cursor-blink {
 		animation: blink 1s step-end infinite;
 	}
+
+	.skeleton-hash {
+		background: repeating-linear-gradient(45deg, #f4f4f4, #f4f4f4 10px, #e0e0e0 10px, #e0e0e0 20px);
+	}
+
+	.data-row:hover {
+		background-color: var(--color-signal-black);
+		color: var(--color-cold-console-white);
+		cursor: crosshair;
+	}
+
+	.data-row:hover .tag-badge {
+		border-color: var(--color-cold-console-white);
+		color: var(--color-cold-console-white);
+	}
+
+	.tag-badge {
+		border: 1px solid var(--color-signal-black);
+		font-family: var(--font-mono);
+		font-size: 10px;
+		text-transform: uppercase;
+		padding: 2px 6px;
+		letter-spacing: 0.05em;
+	}
 }
