@@ -1,4 +1,4 @@
-import { recipeRepository } from '$lib/mock/poudb';
+import { recipeRepository } from '$lib/poudb-repository';
 import {
 	FRIENDLY_ACTION_MESSAGES,
 	mapRepositoryErrorToMessage
@@ -11,7 +11,7 @@ export async function load({ params }) {
 
 	return {
 		requestedId: params.id,
-		draft: recipeRepository.getEditData(params.id)
+		draft: await recipeRepository.getEditData(params.id)
 	};
 }
 
@@ -82,7 +82,7 @@ export const actions = {
 				};
 			}
 
-			const result = recipeRepository.update(params.id, input);
+			const result = await recipeRepository.update(params.id, input);
 
 			if (result.success) {
 				return { success: true, id: result.id };

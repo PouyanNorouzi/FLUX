@@ -1,4 +1,4 @@
-import { recipeRepository } from '$lib/mock/poudb';
+import { recipeRepository } from '$lib/poudb-repository';
 
 const FALLBACK_STATS = {
 	total: 0,
@@ -10,11 +10,9 @@ const FALLBACK_STATS = {
 /** @type {import('./$types').PageServerLoad} */
 export async function load() {
 	try {
-		// Simulate TCP round-trip delay to POUDB daemon on port 8080
-		await new Promise((resolve) => setTimeout(resolve, 500));
 		return {
-			records: recipeRepository.getSummaries(),
-			stats: recipeRepository.getStats(),
+			records: await recipeRepository.getSummaries(),
+			stats: await recipeRepository.getStats(),
 			loadError: null
 		};
 	} catch (error) {

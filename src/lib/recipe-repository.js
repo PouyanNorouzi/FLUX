@@ -59,13 +59,56 @@
  */
 
 /**
+ * @typedef {{
+ * 	id: string,
+ * 	label: string,
+ * 	quantity: string,
+ * 	unit: string,
+ * 	name: string,
+ * 	note: string | null
+ * }} RecipeDetailIngredient
+ */
+
+/**
+ * @typedef {{
+ * 	id: string,
+ * 	index: string,
+ * 	instruction: string
+ * }} RecipeDetailStep
+ */
+
+/**
+ * @typedef {{
+ * 	sourceStruct: string,
+ * 	fieldCoverage: string,
+ * 	recordBytes: string,
+ * 	checksum: string,
+ * 	parserMode: string
+ * }} RecipeParseSummary
+ */
+
+/**
+ * @typedef {{
+ * 	id: string,
+ * 	title: string,
+ * 	updatedHex: string,
+ * 	timeLabel: string,
+ * 	yieldLabel: string,
+ * 	categories: string[],
+ * 	ingredients: RecipeDetailIngredient[],
+ * 	steps: RecipeDetailStep[],
+ * 	parseSummary: RecipeParseSummary
+ * }} RecipeDetail
+ */
+
+/**
  * Recipe Repository
  * Abstracts persistence and read/write operations.
  */
 export class RecipeRepository {
 	/**
 	 * Get a summary list of all recipes.
-	 * @returns {Array<{id: string, title: string, tags: string[], ts: string}>}
+	 * @returns {Promise<Array<{id: string, title: string, tags: string[], ts: string}>>}
 	 */
 	getSummaries() {
 		throw new Error('Not implemented');
@@ -74,7 +117,7 @@ export class RecipeRepository {
 	/**
 	 * Get full recipe details by ID.
 	 * @param {string} _id - The recipe flux_id (e.g., '0x8F9A')
-	 * @returns {Object|null}
+	 * @returns {Promise<RecipeDetail|null>}
 	 */
 	// eslint-disable-next-line no-unused-vars
 	getDetail(_id) {
@@ -83,7 +126,7 @@ export class RecipeRepository {
 
 	/**
 	 * Get vault statistics.
-	 * @returns {{total: number, lastSync: string, dbSize: string, latency: string}}
+	 * @returns {Promise<{total: number | string, lastSync: string, dbSize: string, latency: string}>}
 	 */
 	getStats() {
 		throw new Error('Not implemented');
@@ -92,7 +135,7 @@ export class RecipeRepository {
 	/**
 	 * Create a new recipe.
 	 * @param {RecipeCreateInput} _input
-	 * @returns {RecipeCreateResult}
+	 * @returns {Promise<RecipeCreateResult>}
 	 */
 	// eslint-disable-next-line no-unused-vars
 	create(_input) {
@@ -103,7 +146,7 @@ export class RecipeRepository {
 	 * Update an existing recipe by ID.
 	 * @param {string} _id
 	 * @param {RecipeCreateInput} _input
-	 * @returns {RecipeUpdateResult}
+	 * @returns {Promise<RecipeUpdateResult>}
 	 */
 	// eslint-disable-next-line no-unused-vars
 	update(_id, _input) {
@@ -113,7 +156,7 @@ export class RecipeRepository {
 	/**
 	 * Delete a recipe by ID.
 	 * @param {string} _id
-	 * @returns {RecipeDeleteResult}
+	 * @returns {Promise<RecipeDeleteResult>}
 	 */
 	// eslint-disable-next-line no-unused-vars
 	delete(_id) {

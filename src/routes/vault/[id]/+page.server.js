@@ -1,4 +1,4 @@
-import { recipeRepository } from '$lib/mock/poudb';
+import { recipeRepository } from '$lib/poudb-repository';
 import {
 	FRIENDLY_ACTION_MESSAGES,
 	mapRepositoryErrorToMessage
@@ -18,8 +18,8 @@ export async function load({ params }) {
 
 		return {
 			requestedId: params.id,
-			recipe: recipeRepository.getDetail(params.id),
-			stats: recipeRepository.getStats(),
+			recipe: await recipeRepository.getDetail(params.id),
+			stats: await recipeRepository.getStats(),
 			loadError: null
 		};
 	} catch (error) {
@@ -40,7 +40,7 @@ export const actions = {
 	 */
 	delete: async ({ params }) => {
 		try {
-			const result = recipeRepository.delete(params.id);
+			const result = await recipeRepository.delete(params.id);
 
 			if (result.success) {
 				return { success: true };
