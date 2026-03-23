@@ -1,42 +1,108 @@
-# sv
+# FLUX — Recipe Vault
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A brutalist operator-console recipe management application built with SvelteKit and backed by [poudb](https://github.com/pouyandb/poudb) — a custom C database over TCP.
 
-## Creating a project
+---
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Features
 
-```sh
-# create a new project
-npx sv create my-app
+- **Vault** — Browse, search, and filter recipes by tag categories (e.g., `[VEGAN]`, `[HIGH-PROTEIN]`, `[PASTA]`)
+- **Ingest** — Create recipes with structured ingredients, cooking steps, yield, and time estimates
+- **Detail view** — Full recipe schematics with a parsed ingredient and execution step layout
+- **Edit** — Update any recipe in place
+- **System telemetry** — Live connection status, latency, and record counts in the UI
+- **Passkey auth** — Secure vault access
+
+---
+
+## Tech Stack
+
+| Category | Technology |
+|---|---|
+| Framework | SvelteKit 2 + Svelte 5 (runes) |
+| Styling | Tailwind CSS 4 |
+| Database | poudb (custom C DB over TCP) |
+| Type system | JSDoc |
+| Package manager | pnpm |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js ≥ 18
+- pnpm
+- A running [poudb](https://github.com/pouyandb/poudb) server
+
+### Install
+
+```bash
+pnpm install
 ```
 
-To recreate this project with the same configuration:
+### Environment
 
-```sh
-# recreate this project
-pnpm dlx sv@0.12.8 create --template minimal --types jsdoc --add prettier eslint mcp="ide:vscode+setup:remote" tailwindcss="plugins:typography,forms" --install pnpm recepies-app
+Create a `.env` file (or set environment variables):
+
+```env
+POUDB_HOST=127.0.0.1   # default: 127.0.0.1
+POUDB_PORT=3005         # default: 3005
+POUDB_TABLE=recipes     # default: recipes
 ```
 
-## Developing
+### Develop
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```bash
+pnpm dev
 ```
 
-## Building
+Open [http://localhost:5173](http://localhost:5173).
 
-To create a production version of your app:
+### Build
 
-```sh
-npm run build
+```bash
+pnpm build
+pnpm preview   # preview the production build
 ```
 
-You can preview the production build with `npm run preview`.
+---
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Project Structure
+
+```
+src/
+├── routes/
+│   ├── +page.svelte              # Auth / login entry point
+│   └── vault/
+│       ├── +page.svelte          # Vault index — list, search, filter
+│       ├── [id]/+page.svelte     # Recipe detail view
+│       ├── [id]/edit/            # Edit form
+│       └── ingest/               # Create recipe form
+└── lib/
+    ├── components/               # Reusable UI components
+    ├── errors/                   # Server + client action error handling
+    ├── stores/toast.js           # Toast notification store
+    ├── recipe-repository.js      # Abstract repository interface + validation
+    ├── poudb-repository.js       # Concrete poudb implementation
+    └── ingredient-units.js       # Supported ingredient units
+```
+
+---
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start dev server |
+| `pnpm build` | Production build |
+| `pnpm preview` | Preview production build |
+| `pnpm check` | Svelte type-check |
+| `pnpm lint` | Prettier + ESLint |
+| `pnpm format` | Auto-format all files |
+
+---
+
+## Design
+
+See [DESIGN.md](DESIGN.md) for the full design system — palette, typography, component patterns, and operator vocabulary.
