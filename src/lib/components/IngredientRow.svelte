@@ -11,6 +11,13 @@
 	 * }}
 	 */
 	let { ingredient, index, errors = {}, onChange, onRemove } = $props();
+
+	/** @param {boolean} required */
+	function requirementBadge(required) {
+		return required
+			? 'border-molten-commit-orange text-molten-commit-orange'
+			: 'border-divider-gray text-muted';
+	}
 </script>
 
 <div
@@ -19,15 +26,21 @@
 	<div class="sm:col-span-1">
 		<label
 			for={`ingredient_${ingredient.id ?? index}_qty`}
-			class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+			class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 		>
-			QTY
+			<span>QTY</span>
+			<span
+				class={`border px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] ${requirementBadge(true)}`}
+			>
+				REQ
+			</span>
 		</label>
 		<input
 			id={`ingredient_${ingredient.id ?? index}_qty`}
 			type="text"
 			placeholder="1"
 			value={ingredient.quantity}
+			aria-required="true"
 			oninput={(event) => onChange('quantity', event.currentTarget.value)}
 			class={`brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none ${
 				errors.qty
@@ -43,14 +56,20 @@
 	<div class="sm:col-span-1">
 		<label
 			for={`ingredient_${ingredient.id ?? index}_unit`}
-			class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+			class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 		>
-			UNIT
+			<span>UNIT</span>
+			<span
+				class={`border px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] ${requirementBadge(true)}`}
+			>
+				REQ
+			</span>
 		</label>
 		<UnitInput
 			id={`ingredient_${ingredient.id ?? index}_unit`}
 			value={ingredient.unit}
 			hasError={!!errors.unit}
+			isRequired={true}
 			onChange={(value) => onChange('unit', value)}
 		/>
 		{#if errors.unit}
@@ -61,15 +80,21 @@
 	<div class="sm:col-span-1">
 		<label
 			for={`ingredient_${ingredient.id ?? index}_name`}
-			class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+			class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 		>
-			NAME
+			<span>NAME</span>
+			<span
+				class={`border px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] ${requirementBadge(true)}`}
+			>
+				REQ
+			</span>
 		</label>
 		<input
 			id={`ingredient_${ingredient.id ?? index}_name`}
 			type="text"
 			placeholder="garlic"
 			value={ingredient.name}
+			aria-required="true"
 			oninput={(event) => onChange('name', event.currentTarget.value)}
 			class={`brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none ${
 				errors.name
@@ -85,9 +110,14 @@
 	<div class="flex flex-col sm:col-span-1">
 		<label
 			for={`ingredient_${ingredient.id ?? index}_note`}
-			class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+			class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 		>
-			NOTE
+			<span>NOTE</span>
+			<span
+				class={`border px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] ${requirementBadge(false)}`}
+			>
+				OPT
+			</span>
 		</label>
 		<div class="flex gap-1">
 			<input
@@ -95,6 +125,7 @@
 				type="text"
 				placeholder="minced"
 				value={ingredient.note}
+				aria-required="false"
 				oninput={(event) => onChange('note', event.currentTarget.value)}
 				class="brutalist-border flex-1 border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
 			/>

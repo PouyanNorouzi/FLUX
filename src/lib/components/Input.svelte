@@ -8,7 +8,8 @@
 	 *   value?: string,
 	 *   error?: boolean,
 	 *   errorMessage?: string,
-	 *   icon?: string | null
+	 *   icon?: string | null,
+	 *   requirement?: 'required' | 'optional' | null
 	 * }}
 	 */
 	let {
@@ -19,7 +20,8 @@
 		value = $bindable(''),
 		error = false,
 		errorMessage = '',
-		icon = null
+		icon = null,
+		requirement = null
 	} = $props();
 </script>
 
@@ -31,13 +33,21 @@
 		{#if icon}
 			<span class="material-symbols-outlined text-[16px]">{icon}</span>
 		{/if}
-		{label}
+		<span>{label}</span>
+		{#if requirement}
+			<span
+				class={`border px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] ${requirement === 'required' ? 'border-molten-commit-orange text-molten-commit-orange' : 'border-divider-gray text-muted'}`}
+			>
+				{requirement === 'required' ? 'REQ' : 'OPT'}
+			</span>
+		{/if}
 	</label>
 	<input
 		{id}
 		{type}
 		{placeholder}
 		bind:value
+		aria-required={requirement === 'required'}
 		autocomplete="off"
 		class="brutalist-input h-14 w-full px-4 font-mono text-base placeholder:text-muted focus:ring-0
 			{error ? 'error' : ''}"

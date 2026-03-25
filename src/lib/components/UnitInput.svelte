@@ -7,10 +7,11 @@
 	 *   value: string,
 	 *   placeholder?: string,
 	 *   hasError?: boolean,
+	 *   isRequired?: boolean,
 	 *   onChange: (value: string) => void
 	 * }}
 	 */
-	let { id, value, placeholder = 'CUP', hasError = false, onChange } = $props();
+	let { id, value, placeholder = 'CUP', hasError = false, isRequired = false, onChange } = $props();
 
 	let isFocused = $state(false);
 
@@ -19,7 +20,10 @@
 		if (!query) {
 			return [];
 		}
-		return INGREDIENT_UNIT_SUGGESTIONS.filter((unit) => unit.toLowerCase().includes(query)).slice(0, 8);
+		return INGREDIENT_UNIT_SUGGESTIONS.filter((unit) => unit.toLowerCase().includes(query)).slice(
+			0,
+			8
+		);
 	});
 
 	const showSuggestions = $derived.by(() => isFocused && filteredUnits.length > 0);
@@ -45,7 +49,8 @@
 		autocapitalize="off"
 		spellcheck="false"
 		{placeholder}
-		value={value}
+		{value}
+		aria-required={isRequired}
 		onfocus={() => (isFocused = true)}
 		onblur={() => {
 			setTimeout(() => {

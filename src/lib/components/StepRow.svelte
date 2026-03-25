@@ -14,9 +14,14 @@
 <div class="border-b border-divider-gray pb-3 last:border-b-0">
 	<label
 		for={`step_${step.id ?? index}`}
-		class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+		class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 	>
-		STEP {String(index + 1).padStart(2, '0')}
+		<span>STEP {String(index + 1).padStart(2, '0')}</span>
+		<span
+			class="border border-molten-commit-orange px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] text-molten-commit-orange"
+		>
+			REQ
+		</span>
 	</label>
 	<div class="flex gap-2">
 		<textarea
@@ -24,6 +29,7 @@
 			rows="2"
 			placeholder="Step instruction..."
 			value={step.instruction}
+			aria-required="true"
 			oninput={(event) => onChange(event.currentTarget.value)}
 			class={`brutalist-border flex-1 border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none ${
 				errorMessage

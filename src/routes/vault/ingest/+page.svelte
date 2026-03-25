@@ -283,6 +283,7 @@
 							error={!!errors.title}
 							errorMessage={errors.title}
 							icon="restaurant"
+							requirement="required"
 						/>
 
 						<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -295,6 +296,7 @@
 								error={!!errors.yieldLabel}
 								errorMessage={errors.yieldLabel}
 								icon="scale"
+								requirement="required"
 							/>
 
 							<Input
@@ -306,6 +308,7 @@
 								error={!!errors.timeMinutes}
 								errorMessage={errors.timeMinutes}
 								icon="schedule"
+								requirement="required"
 							/>
 						</div>
 					</div>
@@ -315,11 +318,12 @@
 			<div in:fly={sectionEnter(1)} out:fade={{ duration: 110 }}>
 				<FormSection title="METADATA_TAGS">
 					<TagEditor
-						label="newTag"
+						label="TAG_INPUT"
 						placeholder="TAG NAME..."
 						tags={draft.tags}
 						bind:inputValue={newTag}
 						errorMessage={errors.tags}
+						requirementLabel="optional"
 						onAdd={(value) => {
 							if (addTag(value)) newTag = '';
 						}}
@@ -369,15 +373,21 @@
 						<div>
 							<label
 								for="newIngredientQty"
-								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+								class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 							>
-								QTY
+								<span>QTY</span>
+								<span
+									class="border border-molten-commit-orange px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] text-molten-commit-orange"
+								>
+									REQ
+								</span>
 							</label>
 							<input
 								id="newIngredientQty"
 								type="text"
 								placeholder="1"
 								bind:value={newIngredient.quantity}
+								aria-required="true"
 								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
 							/>
 						</div>
@@ -385,13 +395,19 @@
 						<div>
 							<label
 								for="newIngredientUnit"
-								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+								class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 							>
-								UNIT
+								<span>UNIT</span>
+								<span
+									class="border border-molten-commit-orange px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] text-molten-commit-orange"
+								>
+									REQ
+								</span>
 							</label>
 							<UnitInput
 								id="newIngredientUnit"
 								value={newIngredient.unit}
+								isRequired={true}
 								onChange={(value) => {
 									newIngredient.unit = value;
 								}}
@@ -401,15 +417,21 @@
 						<div>
 							<label
 								for="newIngredientName"
-								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+								class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 							>
-								NAME
+								<span>NAME</span>
+								<span
+									class="border border-molten-commit-orange px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] text-molten-commit-orange"
+								>
+									REQ
+								</span>
 							</label>
 							<input
 								id="newIngredientName"
 								type="text"
 								placeholder="garlic"
 								bind:value={newIngredient.name}
+								aria-required="true"
 								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
 							/>
 						</div>
@@ -417,15 +439,21 @@
 						<div>
 							<label
 								for="newIngredientNote"
-								class="block text-[10px] font-bold tracking-widest text-muted uppercase"
+								class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted uppercase"
 							>
-								NOTE
+								<span>NOTE</span>
+								<span
+									class="border border-divider-gray px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] text-muted"
+								>
+									OPT
+								</span>
 							</label>
 							<input
 								id="newIngredientNote"
 								type="text"
 								placeholder="minced"
 								bind:value={newIngredient.note}
+								aria-required="false"
 								class="brutalist-border w-full border-2 border-signal-black bg-cold-console-white px-2 py-1 font-mono text-sm outline-none focus:border-molten-commit-orange"
 							/>
 						</div>
@@ -479,13 +507,19 @@
 
 					<div class="flex flex-col gap-2">
 						<label for="newStep" class="text-[10px] font-bold tracking-widest text-muted uppercase">
-							NEW STEP
+							<span class="mr-2">NEW STEP</span>
+							<span
+								class="border border-molten-commit-orange px-1 py-0.5 text-[9px] leading-none tracking-[0.2em] text-molten-commit-orange"
+							>
+								REQ
+							</span>
 						</label>
 						<textarea
 							id="newStep"
 							rows="2"
 							placeholder="New step instruction..."
 							bind:value={newStep}
+							aria-required="true"
 							class="brutalist-border flex-1 border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-sm outline-none focus:border-molten-commit-orange"
 						></textarea>
 						<button
