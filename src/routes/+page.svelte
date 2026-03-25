@@ -3,19 +3,75 @@
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
+	import { mapRepositoryErrorToMessage } from '$lib/errors/action-errors.js';
 
 	let passkey = $state('');
 	let error = $state(false);
+	let gateError = $state('');
+	let dbStatus = $state('unknown');
 	let connected = $state(false);
 	let loading = $state(false);
 
-	function handleSubmit() {
+	const DB_UNAVAILABLE_FALLBACK =
+		'Database is currently unreachable. Verify PoUDB is online and try again.';
+
+	function dbStatusLabel() {
+		if (dbStatus === 'checking') return 'POUDB_CONN_CHECKING';
+		if (dbStatus === 'online') return 'POUDB_CONN_ACTIVE';
+		if (dbStatus === 'offline') return 'POUDB_CONN_OFFLINE';
+		return 'POUDB_CONN_UNKNOWN';
+	}
+
+	function dbStatusFooterLabel() {
+		if (dbStatus === 'checking') return 'POUDB_PROBING';
+		if (dbStatus === 'online') return 'POUDB_ONLINE';
+		if (dbStatus === 'offline') return 'POUDB_OFFLINE';
+		return 'POUDB_STATUS_UNKNOWN';
+	}
+
+	async function probeDatabaseConnectivity() {
+		try {
+			const response = await fetch(resolve('/api/db-health'));
+			const payload = await response.json().catch(() => ({}));
+
+			if (response.ok && payload?.success === true) {
+				return { success: true, message: '' };
+			}
+
+			const code = typeof payload?.code === 'string' ? payload.code : undefined;
+			return {
+				success: false,
+				message: mapRepositoryErrorToMessage(code, DB_UNAVAILABLE_FALLBACK)
+			};
+		} catch {
+			return {
+				success: false,
+				message: DB_UNAVAILABLE_FALLBACK
+			};
+		}
+	}
+
+	async function handleSubmit() {
 		if (!passkey.trim()) {
 			error = true;
+			gateError = '';
 			return;
 		}
 		error = false;
+		gateError = '';
 		loading = true;
+		dbStatus = 'checking';
+
+		const connectivity = await probeDatabaseConnectivity();
+		if (!connectivity.success) {
+			loading = false;
+			dbStatus = 'offline';
+			gateError = connectivity.message;
+			return;
+		}
+
+		dbStatus = 'online';
+
 		setTimeout(() => {
 			loading = false;
 			connected = true;
@@ -63,7 +119,7 @@
 		<div
 			class="flex items-center justify-between border-b-4 border-signal-black bg-surface px-4 py-2 font-mono text-[10px] font-bold text-muted uppercase"
 		>
-			<span>POUDB_CONN_ACTIVE</span>
+			<span>{dbStatusLabel()}</span>
 			<span>PORT: 8080 TCP</span>
 		</div>
 
@@ -87,6 +143,13 @@
 					errorMessage="ERR_AUTH_FAILED: INVALID_TOKEN"
 					icon="key"
 				/>
+				{#if gateError}
+					<p
+						class="border-2 border-signal-black bg-surface px-3 py-2 font-mono text-[10px] text-signal-black uppercase"
+					>
+						ERR_DB_UNAVAILABLE: {gateError}
+					</p>
+				{/if}
 				<Button type="submit" {loading} icon="database">[ WRITE TO POUDB ]</Button>
 			</form>
 		{:else}
@@ -113,8 +176,14 @@
 		>
 			<span>FLUX v1.0.4 build-8a9b2c</span>
 			<span class="flex items-center gap-1">
-				<span class="h-2 w-2 animate-pulse rounded-full bg-molten-commit-orange"></span>
-				POUDB_ONLINE
+				<span
+					class="h-2 w-2 rounded-full"
+					class:animate-pulse={dbStatus !== 'offline'}
+					class:bg-daemon-green-pulse={dbStatus === 'online'}
+					class:bg-molten-commit-orange={dbStatus === 'checking' || dbStatus === 'unknown'}
+					class:bg-red-600={dbStatus === 'offline'}
+				></span>
+				{dbStatusFooterLabel()}
 			</span>
 		</footer>
 	</main>

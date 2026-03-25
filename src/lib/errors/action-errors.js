@@ -8,7 +8,10 @@ const DEFAULT_MESSAGES = {
 
 /** @type {Record<string, string>} */
 const REPOSITORY_ERROR_MESSAGES = {
-	RECORD_NOT_FOUND: 'This recipe no longer exists. Refresh the vault and try again.'
+	RECORD_NOT_FOUND: 'This recipe no longer exists. Refresh the vault and try again.',
+	POUDB_CONNECTION_ERROR:
+		'Database is currently unreachable. Verify PoUDB is online and try again.',
+	DB_UNAVAILABLE: 'Database is currently unreachable. Verify PoUDB is online and try again.'
 };
 
 /**
