@@ -49,6 +49,41 @@
 	/** @type {Record<string, string>} */
 	let errors = $state({});
 
+	function hasText(/** @type {string} */ value) {
+		return value.trim() !== '';
+	}
+
+	function getCommitStatus() {
+		if (!hasText(draft.title) || !hasText(draft.yieldLabel) || !hasText(draft.timeMinutes)) {
+			return { label: 'MISSING METADATA', ready: false };
+		}
+
+		if (draft.ingredients.length === 0) {
+			return { label: 'ADD INGREDIENTS', ready: false };
+		}
+
+		if (
+			!draft.ingredients.every(
+				(ingredient) =>
+					hasText(ingredient.quantity) && hasText(ingredient.unit) && hasText(ingredient.name)
+			)
+		) {
+			return { label: 'COMPLETE INGREDIENTS', ready: false };
+		}
+
+		if (draft.steps.length === 0) {
+			return { label: 'ADD STEPS', ready: false };
+		}
+
+		if (!draft.steps.every((step) => hasText(step.instruction))) {
+			return { label: 'COMPLETE STEPS', ready: false };
+		}
+
+		return { label: 'READY TO COMMIT', ready: true };
+	}
+
+	let commitStatus = $derived(getCommitStatus());
+
 	function generateId() {
 		return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 	}
@@ -265,7 +300,7 @@
 		</div>
 	</header>
 
-	<main class="mx-auto flex w-full max-w-360 flex-1 flex-col gap-8 p-4 lg:p-8">
+	<main class="mx-auto flex w-full max-w-360 flex-1 flex-col gap-8 p-4 pb-32 lg:p-8 lg:pb-36">
 		<form onsubmit={handleSubmit} class="flex flex-col gap-8">
 			<div in:fly={sectionEnter(0)} out:fade={{ duration: 110 }}>
 				<FormSection
@@ -466,7 +501,7 @@
 							disabled={!newIngredient.quantity || !newIngredient.unit || !newIngredient.name}
 							class="brutalist-border border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black disabled:cursor-not-allowed disabled:opacity-50"
 						>
-							[+ ADD INGREDIENT]
+							[+ APPEND INGREDIENT]
 						</button>
 					</div>
 				</FormSection>
@@ -525,24 +560,43 @@
 						<button
 							type="button"
 							onclick={addStep}
-							class="brutalist-border border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black"
+							class="brutalist-border self-start border-2 border-signal-black bg-signal-black px-4 py-2 font-mono text-sm font-bold text-cold-console-white transition-colors hover:bg-molten-commit-orange hover:text-signal-black"
 						>
-							[+ ADD STEP]
+							[+ APPEND STEP]
 						</button>
 					</div>
 				</FormSection>
 			</div>
 
-			<div class="flex flex-col gap-3 sm:flex-row">
-				<Button type="submit" {loading} icon="send">[ COMMIT TO POUDB ]</Button>
-				<button
-					type="button"
-					onclick={resetForm}
-					disabled={loading}
-					class="brutalist-border border-2 border-signal-black bg-cold-console-white px-6 py-3 font-display text-base font-bold uppercase transition-colors hover:bg-signal-black hover:text-cold-console-white disabled:opacity-50"
+			<div class="fixed right-0 bottom-0 left-0 z-50 border-t-4 border-signal-black bg-cold-console-white">
+				<div
+					class="mx-auto flex w-full max-w-360 items-center justify-between gap-4 px-4 py-4 lg:px-8"
 				>
-					RESET FORM
-				</button>
+					<div class="hidden flex-col gap-1 sm:flex">
+						<span class="font-mono text-[10px] font-bold tracking-widest text-muted uppercase"
+							>STATUS</span
+						>
+						<span
+							class={`font-mono text-xs font-bold tracking-widest uppercase ${
+								commitStatus.ready ? 'text-signal-black' : 'text-molten-commit-orange'
+							}`}
+						>
+							{commitStatus.label}
+						</span>
+					</div>
+
+					<div class="flex flex-1 flex-col gap-2 sm:flex-none sm:flex-row sm:justify-end">
+						<button
+							type="button"
+							onclick={resetForm}
+							disabled={loading}
+							class="brutalist-border min-h-14 border-2 border-signal-black bg-cold-console-white px-6 py-3 font-display text-base font-bold uppercase transition-colors hover:bg-signal-black hover:text-cold-console-white disabled:opacity-50"
+						>
+							RESET
+						</button>
+						<Button type="submit" {loading} icon="send">[ COMMIT TO POUDB ]</Button>
+					</div>
+				</div>
 			</div>
 		</form>
 	</main>
