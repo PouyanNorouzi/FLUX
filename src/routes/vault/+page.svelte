@@ -24,6 +24,19 @@
 	let query = $state('');
 	let activeTag = $state('[ALL]');
 	let loading = $state(true);
+	let dbPort = $state(3005);
+
+	onMount(async () => {
+		try {
+			const response = await fetch(resolve('/api/db-health'));
+			const payload = await response.json().catch(() => ({}));
+			if (typeof payload?.port === 'number' && Number.isFinite(payload.port)) {
+				dbPort = payload.port;
+			}
+		} catch {
+			// Keep fallback port for display when health probe fails.
+		}
+	});
 
 	onMount(() => {
 		const t = setTimeout(() => {
@@ -77,7 +90,7 @@
 			<span class="hidden opacity-50 sm:inline">|</span>
 			<span class="hidden sm:inline">LATENCY: {data.stats.latency}</span>
 			<span class="hidden opacity-50 md:inline">|</span>
-			<span class="hidden md:inline">TCP PORT: 8080</span>
+			<span class="hidden md:inline">TCP PORT: {dbPort}</span>
 		</div>
 		<div class="flex items-center gap-4">
 			<span>USER_AUTH: ROOT</span>

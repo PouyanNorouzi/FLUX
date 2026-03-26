@@ -9,6 +9,7 @@
 	let error = $state(false);
 	let gateError = $state('');
 	let dbStatus = $state('unknown');
+	let dbPort = $state(3005);
 	let connected = $state(false);
 	let loading = $state(false);
 
@@ -33,6 +34,9 @@
 		try {
 			const response = await fetch(resolve('/api/db-health'));
 			const payload = await response.json().catch(() => ({}));
+			if (typeof payload?.port === 'number' && Number.isFinite(payload.port)) {
+				dbPort = payload.port;
+			}
 
 			if (response.ok && payload?.success === true) {
 				return { success: true, message: '' };
@@ -120,7 +124,7 @@
 			class="flex items-center justify-between border-b-4 border-signal-black bg-surface px-4 py-2 font-mono text-[10px] font-bold text-muted uppercase"
 		>
 			<span>{dbStatusLabel()}</span>
-			<span>PORT: 8080 TCP</span>
+			<span>PORT: {dbPort} TCP</span>
 		</div>
 
 		<!-- Body -->
@@ -164,7 +168,7 @@
 					</div>
 					<p class="font-mono text-xs leading-relaxed tracking-wider text-muted uppercase">
 						POUDB_CONN_ESTABLISHED // ACCESS GRANTED<br />
-						SESSION ACTIVE · PORT 8080 TCP
+						SESSION ACTIVE · PORT {dbPort} TCP
 					</p>
 				</div>
 			</div>
