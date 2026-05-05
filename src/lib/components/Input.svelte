@@ -2,6 +2,7 @@
 	/**
 	 * @type {{
 	 *   id: string,
+	 *   name?: string,
 	 *   label: string,
 	 *   type?: 'text' | 'password' | 'email',
 	 *   placeholder?: string,
@@ -14,6 +15,7 @@
 	 */
 	let {
 		id,
+		name = id,
 		label,
 		type = 'text',
 		placeholder = '',
@@ -44,6 +46,7 @@
 	</label>
 	<input
 		{id}
+		{name}
 		{type}
 		{placeholder}
 		bind:value

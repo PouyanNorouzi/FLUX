@@ -291,16 +291,18 @@ function toEditData(raw) {
 	};
 }
 
-export class PoUdbRecipeRepository extends RecipeRepository {
-	constructor() {
+export class PoudbRecipeRepository extends RecipeRepository {
+	/**
+	 * @param {string} token
+	 */
+	constructor(token) {
 		super();
 		this.client = new PoudbClient({
 			host: POUDB_HOST,
 			port: POUDB_PORT,
+			key: token,
 			reconnect: {
-				enabled: true,
-				maxRetries: 2,
-				retryDelayMs: 100
+				enabled: false
 			}
 		});
 		this.connectPromise = null;
@@ -524,6 +526,14 @@ export class PoUdbRecipeRepository extends RecipeRepository {
 			};
 		}
 	}
+
+	async disconnect() {
+		try {
+			await this.client.disconnect();
+		} catch {
+			// best-effort disconnect
+		}
+	}
 }
 
-export const recipeRepository = new PoUdbRecipeRepository();
+

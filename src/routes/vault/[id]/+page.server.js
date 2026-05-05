@@ -1,4 +1,4 @@
-import { recipeRepository } from '$lib/poudb-repository';
+import { PoudbRecipeRepository } from '$lib/poudb-repository';
 import {
 	FRIENDLY_ACTION_MESSAGES,
 	mapRepositoryErrorToMessage
@@ -12,14 +12,15 @@ const FALLBACK_STATS = {
 };
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ params }) {
+export async function load({ params, locals }) {
+	const repo = new PoudbRecipeRepository(locals.token);
 	try {
 		await new Promise((resolve) => setTimeout(resolve, 350));
 
 		return {
 			requestedId: params.id,
-			recipe: await recipeRepository.getDetail(params.id),
-			stats: await recipeRepository.getStats(),
+			recipe: await repo.getDetail(params.id),
+			stats: await repo.getStats(),
 			loadError: null
 		};
 	} catch (error) {
@@ -30,6 +31,8 @@ export async function load({ params }) {
 			stats: FALLBACK_STATS,
 			loadError: 'VAULT_DETAIL_LOAD_FAILED'
 		};
+	} finally {
+		await repo.disconnect();
 	}
 }
 
@@ -38,9 +41,10 @@ export const actions = {
 	/**
 	 * Delete a recipe by its flux_id (from the route param).
 	 */
-	delete: async ({ params }) => {
+	delete: async ({ params, locals }) => {
+		const repo = new PoudbRecipeRepository(locals.token);
 		try {
-			const result = await recipeRepository.delete(params.id);
+			const result = await repo.delete(params.id);
 
 			if (result.success) {
 				return { success: true };
@@ -61,6 +65,8 @@ export const actions = {
 				errors: { general: FRIENDLY_ACTION_MESSAGES.delete },
 				code: 'DELETE_UNEXPECTED'
 			};
+		} finally {
+			await repo.disconnect();
 		}
 	}
 };

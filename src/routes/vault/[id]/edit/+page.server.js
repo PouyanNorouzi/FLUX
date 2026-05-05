@@ -1,4 +1,4 @@
-import { recipeRepository } from '$lib/poudb-repository';
+import { PoudbRecipeRepository } from '$lib/poudb-repository';
 import {
 	FRIENDLY_ACTION_MESSAGES,
 	mapRepositoryErrorToMessage
@@ -6,13 +6,18 @@ import {
 import { validateRecipeCreateInput } from '$lib/recipe-repository.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ params }) {
-	await new Promise((resolve) => setTimeout(resolve, 200));
+export async function load({ params, locals }) {
+	const repo = new PoudbRecipeRepository(locals.token);
+	try {
+		await new Promise((resolve) => setTimeout(resolve, 200));
 
-	return {
-		requestedId: params.id,
-		draft: await recipeRepository.getEditData(params.id)
-	};
+		return {
+			requestedId: params.id,
+			draft: await repo.getEditData(params.id)
+		};
+	} finally {
+		await repo.disconnect();
+	}
 }
 
 /** @type {import('./$types').Actions} */
@@ -21,7 +26,8 @@ export const actions = {
 	 * Update an existing recipe from the edit form.
 	 * Parses nested FormData arrays and validates before persisting.
 	 */
-	update: async ({ request, params }) => {
+	update: async ({ request, params, locals }) => {
+		const repo = new PoudbRecipeRepository(locals.token);
 		try {
 			const formData = await request.formData();
 
@@ -82,7 +88,7 @@ export const actions = {
 				};
 			}
 
-			const result = await recipeRepository.update(params.id, input);
+			const result = await repo.update(params.id, input);
 
 			if (result.success) {
 				return { success: true, id: result.id };
@@ -104,6 +110,8 @@ export const actions = {
 				},
 				code: 'UPDATE_UNEXPECTED'
 			};
+		} finally {
+			await repo.disconnect();
 		}
 	}
 };

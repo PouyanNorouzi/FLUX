@@ -1,4 +1,4 @@
-import { recipeRepository } from '$lib/poudb-repository';
+import { PoudbRecipeRepository } from '$lib/poudb-repository';
 
 const FALLBACK_STATS = {
 	total: 0,
@@ -8,11 +8,12 @@ const FALLBACK_STATS = {
 };
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load() {
+export async function load({ locals }) {
+	const repo = new PoudbRecipeRepository(locals.token);
 	try {
 		return {
-			records: await recipeRepository.getSummaries(),
-			stats: await recipeRepository.getStats(),
+			records: await repo.getSummaries(),
+			stats: await repo.getStats(),
 			loadError: null
 		};
 	} catch (error) {
@@ -22,5 +23,7 @@ export async function load() {
 			stats: FALLBACK_STATS,
 			loadError: 'VAULT_LIST_LOAD_FAILED'
 		};
+	} finally {
+		await repo.disconnect();
 	}
 }

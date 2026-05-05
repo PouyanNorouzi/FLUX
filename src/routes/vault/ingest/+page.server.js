@@ -1,4 +1,4 @@
-import { recipeRepository } from '$lib/poudb-repository';
+import { PoudbRecipeRepository } from '$lib/poudb-repository';
 import {
 	FRIENDLY_ACTION_MESSAGES,
 	mapRepositoryErrorToMessage
@@ -11,7 +11,8 @@ export const actions = {
 	 * Create a new recipe from ingest form data.
 	 * Parses nested FormData arrays and validates before persisting.
 	 */
-	create: async ({ request }) => {
+	create: async ({ request, locals }) => {
+		const repo = new PoudbRecipeRepository(locals.token);
 		try {
 			const formData = await request.formData();
 
@@ -82,7 +83,7 @@ export const actions = {
 				};
 			}
 
-			const result = await recipeRepository.create(input);
+			const result = await repo.create(input);
 
 			if (result.success) {
 				return {
@@ -107,6 +108,8 @@ export const actions = {
 				},
 				code: 'CREATE_UNEXPECTED'
 			};
+		} finally {
+			await repo.disconnect();
 		}
 	}
 };

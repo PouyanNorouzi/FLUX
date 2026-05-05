@@ -1,6 +1,5 @@
 <script>
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { enhance } from '$app/forms';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import { mapRepositoryErrorToMessage } from '$lib/errors/action-errors.js';
@@ -12,9 +11,6 @@
 	let dbPort = $state(3005);
 	let connected = $state(false);
 	let loading = $state(false);
-
-	const DB_UNAVAILABLE_FALLBACK =
-		'Database is currently unreachable. Verify PoUDB is online and try again.';
 
 	function dbStatusLabel() {
 		if (dbStatus === 'checking') return 'POUDB_CONN_CHECKING';
@@ -30,57 +26,43 @@
 		return 'POUDB_STATUS_UNKNOWN';
 	}
 
-	async function probeDatabaseConnectivity() {
-		try {
-			const response = await fetch(resolve('/api/db-health'));
-			const payload = await response.json().catch(() => ({}));
-			if (typeof payload?.port === 'number' && Number.isFinite(payload.port)) {
-				dbPort = payload.port;
-			}
-
-			if (response.ok && payload?.success === true) {
-				return { success: true, message: '' };
-			}
-
-			const code = typeof payload?.code === 'string' ? payload.code : undefined;
-			return {
-				success: false,
-				message: mapRepositoryErrorToMessage(code, DB_UNAVAILABLE_FALLBACK)
-			};
-		} catch {
-			return {
-				success: false,
-				message: DB_UNAVAILABLE_FALLBACK
-			};
-		}
-	}
-
-	async function handleSubmit() {
+	/** @type {import('@sveltejs/kit').SubmitFunction} */
+	function handleEnhance() {
 		if (!passkey.trim()) {
 			error = true;
 			gateError = '';
-			return;
+			return () => {};
 		}
 		error = false;
 		gateError = '';
 		loading = true;
 		dbStatus = 'checking';
 
-		const connectivity = await probeDatabaseConnectivity();
-		if (!connectivity.success) {
+		return async ({ result, update }) => {
+			if (result.type === 'redirect') {
+				dbStatus = 'online';
+				connected = true;
+				await update();
+				return;
+			}
+
 			loading = false;
+
+			if (result.type === 'failure') {
+				const code = result.data?.code;
+				if (code === 'INVALID_TOKEN' || code === 'EMPTY_TOKEN') {
+					dbStatus = 'online';
+					error = true;
+				} else {
+					dbStatus = 'offline';
+					gateError = mapRepositoryErrorToMessage(code, 'Database is currently unreachable. Verify PoUDB is online and try again.');
+				}
+				return;
+			}
+
 			dbStatus = 'offline';
-			gateError = connectivity.message;
-			return;
-		}
-
-		dbStatus = 'online';
-
-		setTimeout(() => {
-			loading = false;
-			connected = true;
-			goto(resolve('/vault'));
-		}, 800);
+			gateError = 'An unexpected error occurred. Please try again.';
+		};
 	}
 </script>
 
@@ -131,11 +113,10 @@
 		{#if !connected}
 			<!-- Auth form -->
 			<form
+				method="POST"
+				action="?/authenticate"
 				class="flex flex-col gap-6 p-6 md:p-8"
-				onsubmit={(e) => {
-					e.preventDefault();
-					handleSubmit();
-				}}
+				use:enhance={handleEnhance}
 			>
 				<Input
 					id="passkey"
