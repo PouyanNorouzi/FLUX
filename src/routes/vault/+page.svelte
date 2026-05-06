@@ -94,7 +94,7 @@
 			<span class="hidden md:inline">TCP PORT: {dbPort}</span>
 		</div>
 		<div class="flex items-center gap-4">
-			<span>USER_AUTH: ROOT</span>
+			<span>USER_AUTH: {data.keyName}</span>
 			<form method="POST" action="?/logout" use:enhance>
 				<button
 					type="submit"

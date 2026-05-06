@@ -12,9 +12,15 @@ const FALLBACK_STATS = {
 export async function load({ locals }) {
 	const repo = new PoudbRecipeRepository(locals.token);
 	try {
+		const [records, stats, keyName] = await Promise.all([
+			repo.getSummaries(),
+			repo.getStats(),
+			repo.whoami().catch(() => 'UNKNOWN')
+		]);
 		return {
-			records: await repo.getSummaries(),
-			stats: await repo.getStats(),
+			records,
+			stats,
+			keyName,
 			loadError: null
 		};
 	} catch (error) {
@@ -22,6 +28,7 @@ export async function load({ locals }) {
 		return {
 			records: [],
 			stats: FALLBACK_STATS,
+			keyName: 'UNKNOWN',
 			loadError: 'VAULT_LIST_LOAD_FAILED'
 		};
 	}

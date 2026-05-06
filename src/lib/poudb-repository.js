@@ -323,6 +323,14 @@ export class PoudbRecipeRepository extends RecipeRepository {
 		await this.connectPromise;
 	}
 
+	/**
+	 * @returns {Promise<string>}
+	 */
+	async whoami() {
+		await this.ensureConnected();
+		return this.client.whoami();
+	}
+
 	async ensureSchema() {
 		if (!this.schemaPromise) {
 			this.schemaPromise = (async () => {
