@@ -1,13 +1,26 @@
 <script>
+	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import { mapRepositoryErrorToMessage } from '$lib/errors/action-errors.js';
 
+	/** @type {{ data: import('./$types').PageData }} */
+	let { data } = $props();
+
+	const initialError = untrack(() => data.error);
+
 	let passkey = $state('');
 	let error = $state(false);
-	let gateError = $state('');
-	let dbStatus = $state('unknown');
+	let gateError = $state(
+		initialError
+			? mapRepositoryErrorToMessage(
+					initialError,
+					'Database is currently unreachable. Verify Poudb is online and try again.'
+				)
+			: ''
+	);
+	let dbStatus = $state(initialError ? 'offline' : 'unknown');
 	let dbPort = $state(3005);
 	let connected = $state(false);
 	let loading = $state(false);

@@ -1,13 +1,6 @@
 import { PoudbRecipeRepository, PoudbAuthError } from '$lib/poudb-repository';
 import { redirect } from '@sveltejs/kit';
 
-const FALLBACK_STATS = {
-	total: 0,
-	lastSync: 'UNAVAILABLE',
-	dbSize: '0 KB',
-	latency: 'N/A'
-};
-
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, cookies }) {
 	const repo = new PoudbRecipeRepository(locals.token);
@@ -29,12 +22,7 @@ export async function load({ locals, cookies }) {
 			redirect(303, '/');
 		}
 		console.error('[vault/load] failed to read vault index', error);
-		return {
-			records: [],
-			stats: FALLBACK_STATS,
-			keyName: 'UNKNOWN',
-			loadError: 'VAULT_LIST_LOAD_FAILED'
-		};
+		redirect(303, '/?error=DB_UNAVAILABLE');
 	} finally {
 		await repo.disconnect();
 	}

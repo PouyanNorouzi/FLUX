@@ -20,7 +20,8 @@ export async function load({ params, locals, cookies }) {
 			cookies.delete('poudb_token', { path: '/' });
 			redirect(303, '/');
 		}
-		throw error;
+		console.error('[vault/edit] failed to load recipe for editing', error);
+		redirect(303, '/?error=DB_UNAVAILABLE');
 	} finally {
 		await repo.disconnect();
 	}

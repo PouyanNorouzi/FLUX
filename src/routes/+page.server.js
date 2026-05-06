@@ -8,7 +8,11 @@ function resolveDatabasePort() {
 }
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ locals }) {
+export async function load({ locals, url }) {
+	const error = url.searchParams.get('error') ?? null;
+	if (error) {
+		return { error };
+	}
 	if (locals.token) {
 		redirect(303, '/vault');
 	}
