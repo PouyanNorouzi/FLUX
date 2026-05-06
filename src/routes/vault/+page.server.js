@@ -1,4 +1,5 @@
 import { PoudbRecipeRepository } from '$lib/poudb-repository';
+import { redirect } from '@sveltejs/kit';
 
 const FALLBACK_STATS = {
 	total: 0,
@@ -23,7 +24,13 @@ export async function load({ locals }) {
 			stats: FALLBACK_STATS,
 			loadError: 'VAULT_LIST_LOAD_FAILED'
 		};
-	} finally {
-		await repo.disconnect();
 	}
 }
+
+/** @type {import('./$types').Actions} */
+export const actions = {
+	logout: async ({ cookies }) => {
+		cookies.delete('poudb_token', { path: '/' });
+		redirect(303, '/');
+	}
+};

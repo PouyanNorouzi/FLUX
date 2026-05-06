@@ -8,16 +8,12 @@ import { validateRecipeCreateInput } from '$lib/recipe-repository.js';
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ params, locals }) {
 	const repo = new PoudbRecipeRepository(locals.token);
-	try {
-		await new Promise((resolve) => setTimeout(resolve, 200));
+	await new Promise((resolve) => setTimeout(resolve, 200));
 
-		return {
-			requestedId: params.id,
-			draft: await repo.getEditData(params.id)
-		};
-	} finally {
-		await repo.disconnect();
-	}
+	return {
+		requestedId: params.id,
+		draft: await repo.getEditData(params.id)
+	};
 }
 
 /** @type {import('./$types').Actions} */
@@ -110,8 +106,6 @@ export const actions = {
 				},
 				code: 'UPDATE_UNEXPECTED'
 			};
-		} finally {
-			await repo.disconnect();
 		}
 	}
 };

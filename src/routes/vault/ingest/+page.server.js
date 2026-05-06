@@ -108,8 +108,6 @@ export const actions = {
 				},
 				code: 'CREATE_UNEXPECTED'
 			};
-		} finally {
-			await repo.disconnect();
 		}
 	}
 };

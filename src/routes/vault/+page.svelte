@@ -1,4 +1,5 @@
 <script>
+	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { flip } from 'svelte/animate';
@@ -94,12 +95,14 @@
 		</div>
 		<div class="flex items-center gap-4">
 			<span>USER_AUTH: ROOT</span>
-			<button
-				onclick={() => goto(resolve('/'))}
-				class="border border-cold-console-white px-3 py-1 text-[10px] font-bold transition-colors hover:border-molten-commit-orange hover:bg-molten-commit-orange"
-			>
-				LOGOUT
-			</button>
+			<form method="POST" action="?/logout" use:enhance>
+				<button
+					type="submit"
+					class="border border-cold-console-white px-3 py-1 text-[10px] font-bold transition-colors hover:border-molten-commit-orange hover:bg-molten-commit-orange"
+				>
+					LOGOUT
+				</button>
+			</form>
 		</div>
 	</header>
 
