@@ -107,13 +107,14 @@ export const actions = {
 			}
 			console.error('[ingest/create] unexpected failure', error);
 			return {
-			return {
 				success: false,
 				errors: {
 					general: FRIENDLY_ACTION_MESSAGES.create
 				},
 				code: 'CREATE_UNEXPECTED'
 			};
+		} finally {
+			await repo.disconnect();
 		}
 	}
 };

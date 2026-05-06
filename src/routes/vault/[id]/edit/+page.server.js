@@ -9,9 +9,8 @@ import { redirect } from '@sveltejs/kit';
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ params, locals, cookies }) {
 	const repo = new PoudbRecipeRepository(locals.token);
-	await new Promise((resolve) => setTimeout(resolve, 200));
-
 	try {
+		await new Promise((resolve) => setTimeout(resolve, 200));
 		return {
 			requestedId: params.id,
 			draft: await repo.getEditData(params.id)
@@ -22,6 +21,8 @@ export async function load({ params, locals, cookies }) {
 			redirect(303, '/');
 		}
 		throw error;
+	} finally {
+		await repo.disconnect();
 	}
 }
 
@@ -113,13 +114,14 @@ export const actions = {
 			}
 			console.error('[edit/update] unexpected failure', error);
 			return {
-			return {
 				success: false,
 				errors: {
 					general: FRIENDLY_ACTION_MESSAGES.update
 				},
 				code: 'UPDATE_UNEXPECTED'
 			};
+		} finally {
+			await repo.disconnect();
 		}
 	}
 };

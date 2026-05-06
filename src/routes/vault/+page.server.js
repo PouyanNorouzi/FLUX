@@ -35,6 +35,8 @@ export async function load({ locals, cookies }) {
 			keyName: 'UNKNOWN',
 			loadError: 'VAULT_LIST_LOAD_FAILED'
 		};
+	} finally {
+		await repo.disconnect();
 	}
 }
 

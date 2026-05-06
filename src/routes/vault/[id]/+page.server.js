@@ -36,6 +36,8 @@ export async function load({ params, locals, cookies }) {
 			stats: FALLBACK_STATS,
 			loadError: 'VAULT_DETAIL_LOAD_FAILED'
 		};
+	} finally {
+		await repo.disconnect();
 	}
 }
 
@@ -72,6 +74,8 @@ export const actions = {
 				errors: { general: FRIENDLY_ACTION_MESSAGES.delete },
 				code: 'DELETE_UNEXPECTED'
 			};
+		} finally {
+			await repo.disconnect();
 		}
 	}
 };
