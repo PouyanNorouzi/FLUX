@@ -50,12 +50,15 @@
 
 			if (result.type === 'failure') {
 				const code = result.data?.code;
-				if (code === 'INVALID_TOKEN' || code === 'EMPTY_TOKEN') {
+				if (code === 'INVALID_TOKEN' || code === 'EMPTY_TOKEN' || code === 'ENCRYPT_FAILED') {
 					dbStatus = 'online';
 					error = true;
 				} else {
 					dbStatus = 'offline';
-					gateError = mapRepositoryErrorToMessage(code, 'Database is currently unreachable. Verify PoUDB is online and try again.');
+					gateError = mapRepositoryErrorToMessage(
+						code,
+						'Database is currently unreachable. Verify Poudb is online and try again.'
+					);
 				}
 				return;
 			}

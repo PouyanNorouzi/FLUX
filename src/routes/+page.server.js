@@ -1,5 +1,6 @@
 import { redirect, fail } from '@sveltejs/kit';
 import { PoudbClient, ServerMessageError } from 'poudb-client';
+import { encrypt } from '$lib/cookie-crypto.server.js';
 
 function resolveDatabasePort() {
 	const parsed = Number(process.env.POUDB_PORT ?? '3005');
@@ -44,13 +45,18 @@ export const actions = {
 				// best-effort disconnect
 			}
 		}
-
-		cookies.set('poudb_token', passkey, {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'strict',
-			secure: false
-		});
+		try {
+			const token = encrypt(passkey);
+			cookies.set('poudb_token', token, {
+				path: '/',
+				httpOnly: true,
+				sameSite: 'strict',
+				secure: false
+			});
+		} catch (error) {
+			console.error(error);
+			return fail(400, { code: 'ENCRYPT_FAILED' });
+		}
 
 		redirect(303, '/vault');
 	}
