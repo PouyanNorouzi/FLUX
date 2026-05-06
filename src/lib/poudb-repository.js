@@ -8,6 +8,17 @@
 import { PoudbClient, ServerMessageError } from 'poudb-client';
 import { RecipeRepository } from './recipe-repository.js';
 
+/**
+ * Thrown when the server rejects the token during connection auth.
+ * Callers can catch this to clear the session and redirect to login.
+ */
+export class PoudbAuthError extends Error {
+	constructor() {
+		super('POUDB_AUTH_REJECTED');
+		this.name = 'PoudbAuthError';
+	}
+}
+
 const TABLE_NAME = process.env.POUDB_TABLE ?? 'recipes';
 const POUDB_HOST = process.env.POUDB_HOST ?? '127.0.0.1';
 const POUDB_PORT = Number(process.env.POUDB_PORT ?? '3005');
@@ -320,7 +331,14 @@ export class PoudbRecipeRepository extends RecipeRepository {
 			});
 		}
 
-		await this.connectPromise;
+		try {
+			await this.connectPromise;
+		} catch (error) {
+			if (error instanceof ServerMessageError) {
+				throw new PoudbAuthError();
+			}
+			throw error;
+		}
 	}
 
 	/**

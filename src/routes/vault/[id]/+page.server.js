@@ -1,8 +1,9 @@
-import { PoudbRecipeRepository } from '$lib/poudb-repository';
+import { PoudbRecipeRepository, PoudbAuthError } from '$lib/poudb-repository';
 import {
 	FRIENDLY_ACTION_MESSAGES,
 	mapRepositoryErrorToMessage
 } from '$lib/errors/action-errors.js';
+import { redirect } from '@sveltejs/kit';
 
 const FALLBACK_STATS = {
 	total: 0,
@@ -12,7 +13,7 @@ const FALLBACK_STATS = {
 };
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ params, locals }) {
+export async function load({ params, locals, cookies }) {
 	const repo = new PoudbRecipeRepository(locals.token);
 	try {
 		await new Promise((resolve) => setTimeout(resolve, 350));
@@ -24,6 +25,10 @@ export async function load({ params, locals }) {
 			loadError: null
 		};
 	} catch (error) {
+		if (error instanceof PoudbAuthError) {
+			cookies.delete('poudb_token', { path: '/' });
+			redirect(303, '/');
+		}
 		console.error('[vault/detail] failed to load recipe detail', error);
 		return {
 			requestedId: params.id,
@@ -39,7 +44,7 @@ export const actions = {
 	/**
 	 * Delete a recipe by its flux_id (from the route param).
 	 */
-	delete: async ({ params, locals }) => {
+	delete: async ({ params, locals, cookies }) => {
 		const repo = new PoudbRecipeRepository(locals.token);
 		try {
 			const result = await repo.delete(params.id);
@@ -56,6 +61,10 @@ export const actions = {
 				code: result.error ?? 'DELETE_FAILED'
 			};
 		} catch (error) {
+			if (error instanceof PoudbAuthError) {
+				cookies.delete('poudb_token', { path: '/' });
+				redirect(303, '/');
+			}
 			console.error('[detail/delete] unexpected failure', error);
 			return {
 				success: false,

@@ -1,19 +1,28 @@
-import { PoudbRecipeRepository } from '$lib/poudb-repository';
+import { PoudbRecipeRepository, PoudbAuthError } from '$lib/poudb-repository';
 import {
 	FRIENDLY_ACTION_MESSAGES,
 	mapRepositoryErrorToMessage
 } from '$lib/errors/action-errors.js';
 import { validateRecipeCreateInput } from '$lib/recipe-repository.js';
+import { redirect } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ params, locals }) {
+export async function load({ params, locals, cookies }) {
 	const repo = new PoudbRecipeRepository(locals.token);
 	await new Promise((resolve) => setTimeout(resolve, 200));
 
-	return {
-		requestedId: params.id,
-		draft: await repo.getEditData(params.id)
-	};
+	try {
+		return {
+			requestedId: params.id,
+			draft: await repo.getEditData(params.id)
+		};
+	} catch (error) {
+		if (error instanceof PoudbAuthError) {
+			cookies.delete('poudb_token', { path: '/' });
+			redirect(303, '/');
+		}
+		throw error;
+	}
 }
 
 /** @type {import('./$types').Actions} */
@@ -22,7 +31,7 @@ export const actions = {
 	 * Update an existing recipe from the edit form.
 	 * Parses nested FormData arrays and validates before persisting.
 	 */
-	update: async ({ request, params, locals }) => {
+	update: async ({ request, params, locals, cookies }) => {
 		const repo = new PoudbRecipeRepository(locals.token);
 		try {
 			const formData = await request.formData();
@@ -98,7 +107,12 @@ export const actions = {
 				code: result.error ?? 'UPDATE_FAILED'
 			};
 		} catch (error) {
+			if (error instanceof PoudbAuthError) {
+				cookies.delete('poudb_token', { path: '/' });
+				redirect(303, '/');
+			}
 			console.error('[edit/update] unexpected failure', error);
+			return {
 			return {
 				success: false,
 				errors: {

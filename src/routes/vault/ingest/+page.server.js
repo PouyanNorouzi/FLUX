@@ -1,9 +1,10 @@
-import { PoudbRecipeRepository } from '$lib/poudb-repository';
+import { PoudbRecipeRepository, PoudbAuthError } from '$lib/poudb-repository';
 import {
 	FRIENDLY_ACTION_MESSAGES,
 	mapRepositoryErrorToMessage
 } from '$lib/errors/action-errors.js';
 import { validateRecipeCreateInput } from '$lib/recipe-repository.js';
+import { redirect } from '@sveltejs/kit';
 
 /** @type {import('./$types').Actions} */
 export const actions = {
@@ -11,7 +12,7 @@ export const actions = {
 	 * Create a new recipe from ingest form data.
 	 * Parses nested FormData arrays and validates before persisting.
 	 */
-	create: async ({ request, locals }) => {
+	create: async ({ request, locals, cookies }) => {
 		const repo = new PoudbRecipeRepository(locals.token);
 		try {
 			const formData = await request.formData();
@@ -100,7 +101,12 @@ export const actions = {
 				code: result.error ?? 'CREATE_FAILED'
 			};
 		} catch (error) {
+			if (error instanceof PoudbAuthError) {
+				cookies.delete('poudb_token', { path: '/' });
+				redirect(303, '/');
+			}
 			console.error('[ingest/create] unexpected failure', error);
+			return {
 			return {
 				success: false,
 				errors: {

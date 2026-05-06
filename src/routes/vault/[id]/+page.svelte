@@ -168,7 +168,7 @@
 					<div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
 						<div class="flex max-w-4xl flex-col gap-4">
 							<h1
-								class="font-display text-4xl leading-none font-bold tracking-[-0.05em] uppercase sm:text-5xl lg:text-7xl"
+								class="font-display text-4xl leading-none font-bold tracking-tighter uppercase sm:text-5xl lg:text-7xl"
 							>
 								{recipe.title}
 							</h1>

@@ -1,4 +1,4 @@
-import { PoudbRecipeRepository } from '$lib/poudb-repository';
+import { PoudbRecipeRepository, PoudbAuthError } from '$lib/poudb-repository';
 import { redirect } from '@sveltejs/kit';
 
 const FALLBACK_STATS = {
@@ -9,7 +9,7 @@ const FALLBACK_STATS = {
 };
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ locals }) {
+export async function load({ locals, cookies }) {
 	const repo = new PoudbRecipeRepository(locals.token);
 	try {
 		const [records, stats, keyName] = await Promise.all([
@@ -24,6 +24,10 @@ export async function load({ locals }) {
 			loadError: null
 		};
 	} catch (error) {
+		if (error instanceof PoudbAuthError) {
+			cookies.delete('poudb_token', { path: '/' });
+			redirect(303, '/');
+		}
 		console.error('[vault/load] failed to read vault index', error);
 		return {
 			records: [],
