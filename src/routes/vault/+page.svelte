@@ -9,18 +9,7 @@
 
 	let { data } = $props();
 
-	const TAG_LIST = [
-		'[ALL]',
-		'[VEGAN]',
-		'[HIGH-PROTEIN]',
-		'[DESSERT]',
-		'[PASTA]',
-		'[QUICK]',
-		'[CONDIMENT]',
-		'[SIDE]',
-		'[MEAT]',
-		'[CARBS]'
-	];
+	const TAG_LIST = $derived(['[ALL]', ...data.tags.map((t) => `[${t}]`)]);
 
 	let query = $state('');
 	let activeTag = $state('[ALL]');
@@ -56,7 +45,11 @@
 	);
 
 	const gridState = $derived(
-		loading ? 'loading' : filteredRecords.length === 0 ? 'empty' : `list:${activeTag}:${query.trim()}`
+		loading
+			? 'loading'
+			: filteredRecords.length === 0
+				? 'empty'
+				: `list:${activeTag}:${query.trim()}`
 	);
 
 	function rowEnter(/** @type {number} */ index) {

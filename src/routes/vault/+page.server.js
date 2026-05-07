@@ -5,15 +5,17 @@ import { redirect } from '@sveltejs/kit';
 export async function load({ locals, cookies }) {
 	const repo = new PoudbRecipeRepository(locals.token);
 	try {
-		const [records, stats, keyName] = await Promise.all([
+		const [records, stats, keyName, tags] = await Promise.all([
 			repo.getSummaries(),
 			repo.getStats(),
-			repo.whoami().catch(() => 'UNKNOWN')
+			repo.whoami().catch(() => 'UNKNOWN'),
+			repo.getTagCodes()
 		]);
 		return {
 			records,
 			stats,
 			keyName,
+			tags,
 			loadError: null
 		};
 	} catch (error) {

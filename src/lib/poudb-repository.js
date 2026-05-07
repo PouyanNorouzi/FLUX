@@ -415,6 +415,7 @@ export class PoudbRecipeRepository extends RecipeRepository {
 	 * @returns {Promise<Map<number, string>>}
 	 */
 	async getAllTagsMap() {
+		await this.ensureSchema();
 		const result = await this.client.getAll(TAGS_TABLE, TAG_FIELD_ORDER);
 		/** @type {Map<number, string>} */
 		const map = new Map();
@@ -428,6 +429,15 @@ export class PoudbRecipeRepository extends RecipeRepository {
 			}
 		}
 		return map;
+	}
+
+	/**
+	 * Get all tag codes as a sorted string array.
+	 * @returns {Promise<string[]>}
+	 */
+	async getTagCodes() {
+		const map = await this.getAllTagsMap();
+		return [...map.values()].sort();
 	}
 
 	/**
