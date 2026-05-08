@@ -440,6 +440,26 @@ export class PoudbRecipeRepository extends RecipeRepository {
 	}
 
 	/**
+	 * Get a summary list of all recipes, optionally filtered by title query.
+	 * @param {string} [query]
+	 * @returns {Promise<{records: Array<{id: string, title: string, tags: string[], ts: string}>, execTime: string}>}
+	 */
+	async searchSummaries(query) {
+		const start = Date.now();
+		await this.ensureSchema();
+		const [tagsMap, result] = await Promise.all([
+			this.getAllTagsMap(),
+			this.client.getAll(RECIPE_TABLE, { schema: RECIPE_SCHEMA })
+		]);
+		const q = (query ?? '').trim().toLowerCase();
+		const records = result.rows
+			.filter((row) => !q || String(row.title || '').toLowerCase().includes(q))
+			.map((row) => toSummary(rowToRawRecipe(row), tagsMap));
+		const elapsed = Date.now() - start;
+		return { records, execTime: `${Math.max(elapsed, 1)}ms` };
+	}
+
+	/**
 	 * Get a summary list of all recipes.
 	 * @returns {Promise<Array<{id: string, title: string, tags: string[], ts: string}>>}
 	 */

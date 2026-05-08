@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { flip } from 'svelte/animate';
 	import { cubicOut } from 'svelte/easing';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 
 	let { data } = $props();
@@ -14,7 +14,10 @@
 	let query = $state('');
 	let activeTag = $state('[ALL]');
 	let loading = $state(true);
+	let searching = $state(false);
 	let dbPort = $state(3005);
+	let records = $state(untrack(() => data.records));
+	let execTime = $state(untrack(() => data.stats.latency));
 
 	onMount(async () => {
 		try {
@@ -35,17 +38,53 @@
 		return () => clearTimeout(t);
 	});
 
+	async function executeSearch() {
+		searching = true;
+		try {
+			const url = new URL(resolve('/api/search'), window.location.origin);
+			if (query.trim()) url.searchParams.set('q', query.trim());
+			const res = await fetch(url);
+			if (res.ok) {
+				const payload = await res.json();
+				records = payload.records;
+				execTime = payload.execTime;
+			}
+		} catch {
+			// Keep existing results on failure.
+		} finally {
+			searching = false;
+		}
+	}
+
+	/**
+	 * @param {KeyboardEvent} e
+	 */
+	function handleSearchKeydown(e) {
+		if (e.key === 'Enter') executeSearch();
+	}
+
+	let debounceTimer = /** @type {ReturnType<typeof setTimeout> | null} */ (null);
+
+	$effect(() => {
+		void query;
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			executeSearch();
+		}, 350);
+		return () => {
+			if (debounceTimer) clearTimeout(debounceTimer);
+		};
+	});
+
 	const filteredRecords = $derived(
-		data.records.filter((r) => {
-			const q = query.trim().toLowerCase();
-			const matchQuery = !q || r.title.toLowerCase().includes(q);
+		records.filter((r) => {
 			const matchTag = activeTag === '[ALL]' || r.tags.includes(activeTag);
-			return matchQuery && matchTag;
+			return matchTag;
 		})
 	);
 
 	const gridState = $derived(
-		loading
+		loading || searching
 			? 'loading'
 			: filteredRecords.length === 0
 				? 'empty'
@@ -180,9 +219,12 @@
 						bind:value={query}
 						type="text"
 						placeholder="QUERY POUDB..."
+						onkeydown={handleSearchKeydown}
 						class="h-16 w-full border-0 bg-transparent pr-16 pl-12 font-display text-2xl font-bold uppercase ring-0 outline-none placeholder:text-muted focus:ring-0 lg:h-20 lg:pl-16 lg:text-4xl"
 					/>
 					<button
+						type="button"
+						onclick={executeSearch}
 						class="absolute top-1/2 right-4 -translate-y-1/2 border border-signal-black bg-signal-black p-2 text-cold-console-white transition-colors hover:bg-molten-commit-orange"
 					>
 						<span class="material-symbols-outlined">keyboard_return</span>
@@ -203,7 +245,7 @@
 			<!-- Data Grid Body -->
 			<div class="flex-1 overflow-y-auto">
 				{#key gridState}
-					{#if loading}
+				{#if loading || searching}
 						<div in:fade={{ duration: 180 }} out:fade={{ duration: 140 }}>
 							{#each [0, 1, 2] as i (i)}
 								<div
@@ -264,8 +306,8 @@
 				class="flex shrink-0 justify-between border-t-4 border-signal-black bg-surface p-2 font-mono text-[10px]"
 			>
 				<span>QUERY: '{query || '*'}'</span>
-				<span>MATCHES: {loading ? '...' : filteredRecords.length}</span>
-				<span>EXEC_TIME: {data.stats.latency}</span>
+				<span>MATCHES: {loading || searching ? '...' : filteredRecords.length}</span>
+				<span>EXEC_TIME: {execTime}</span>
 			</div>
 		</section>
 	</main>
