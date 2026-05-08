@@ -54,18 +54,6 @@ const INGREDIENT_SCHEMA = [
 /** @type {import('poudb-client').SchemaField[]} */
 const TAG_SCHEMA = [{ type: 'string', name: 'code' }];
 
-const RECIPE_FIELD_ORDER = [
-	'title',
-	'modified_hex',
-	'yield_label',
-	'time_minutes',
-	'steps',
-	'ingredient_keys',
-	'tag_keys'
-];
-const INGREDIENT_FIELD_ORDER = ['qty', 'unit', 'name', 'note'];
-const TAG_FIELD_ORDER = ['key', 'code'];
-
 /**
  * @typedef {{
  * 	key: number,
@@ -146,99 +134,45 @@ function keyToFluxId(key) {
 	return `0x${clamped.toString(16).toUpperCase().padStart(4, '0')}`;
 }
 
-/** @param {unknown} value */
-function decodeCell(value) {
-	if (typeof value !== 'string') {
-		return '';
-	}
-
-	const trimmed = value.trim();
-	if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-		try {
-			return JSON.parse(trimmed);
-		} catch {
-			return trimmed.slice(1, -1);
-		}
-	}
-
-	return trimmed;
-}
-
 /**
- * @param {unknown} value
- * @param {unknown} fallback
- */
-function parseJsonValue(value, fallback) {
-	const decoded = decodeCell(value);
-	if (typeof decoded !== 'string') {
-		return decoded;
-	}
-
-	if (!decoded) {
-		return fallback;
-	}
-
-	try {
-		return JSON.parse(decoded);
-	} catch {
-		return fallback;
-	}
-}
-
-/** @param {unknown} value */
-function parseStringArray(value) {
-	const parsed = parseJsonValue(value, []);
-	return Array.isArray(parsed) ? parsed.map((entry) => String(entry)) : [];
-}
-
-/** @param {unknown} value */
-function parseIntArray(value) {
-	const parsed = parseJsonValue(value, []);
-	return Array.isArray(parsed) ? parsed.map(Number).filter(Number.isFinite) : [];
-}
-
-/**
- * @param {Record<string, string>} row
- * @param {number} keyHint
+ * @param {Record<string, unknown>} row
  * @returns {RawRecipe}
  */
-function rowToRawRecipe(row, keyHint) {
+function rowToRawRecipe(row) {
 	return {
-		flux_id: keyToFluxId(keyHint ?? 0),
-		title: String(decodeCell(row.title) || ''),
-		modified_hex: String(decodeCell(row.modified_hex) || HARDCODED_MODIFIED_HEX),
-		yield_label: String(decodeCell(row.yield_label) || ''),
-		time_minutes: Number(decodeCell(row.time_minutes) || 0),
-		ingredient_keys: parseIntArray(row.ingredient_keys),
-		tag_keys: parseIntArray(row.tag_keys),
-		steps: parseStringArray(row.steps)
+		flux_id: keyToFluxId(/** @type {number} */ (row.key)),
+		title: String(row.title || ''),
+		modified_hex: String(row.modified_hex || HARDCODED_MODIFIED_HEX),
+		yield_label: String(row.yield_label || ''),
+		time_minutes: Number(row.time_minutes || 0),
+		ingredient_keys: /** @type {number[]} */ (row.ingredient_keys) ?? [],
+		tag_keys: /** @type {number[]} */ (row.tag_keys) ?? [],
+		steps: /** @type {string[]} */ (row.steps) ?? []
 	};
 }
 
 /**
- * @param {Record<string, string>} row
- * @param {number} key
+ * @param {Record<string, unknown>} row
  * @returns {RawIngredient}
  */
-function rowToRawIngredient(row, key) {
+function rowToRawIngredient(row) {
 	return {
-		key,
-		qty: String(decodeCell(row.qty) || ''),
-		unit: String(decodeCell(row.unit) || ''),
-		name: String(decodeCell(row.name) || ''),
-		note: String(decodeCell(row.note) || '')
+		key: /** @type {number} */ (row.key),
+		qty: String(row.qty || ''),
+		unit: String(row.unit || ''),
+		name: String(row.name || ''),
+		note: String(row.note || '')
 	};
 }
 
 /**
- * @param {Record<string, string>} row
- * @param {number} key
+ * @param {Record<string, unknown>} row
  * @returns {RawTag}
  */
-function rowToRawTag(row, key) {
+function rowToRawTag(row) {
 	return {
-		key,
-		code: String(decodeCell(row.code) || '')
+		key: /** @type {number} */ (row.key),
+		code: String(row.code || '')
 	};
 }
 
@@ -416,16 +350,13 @@ export class PoudbRecipeRepository extends RecipeRepository {
 	 */
 	async getAllTagsMap() {
 		await this.ensureSchema();
-		const result = await this.client.getAll(TAGS_TABLE, TAG_FIELD_ORDER);
+		const result = await this.client.getAll(TAGS_TABLE, { schema: TAG_SCHEMA });
 		/** @type {Map<number, string>} */
 		const map = new Map();
-		for (let i = 0; i < result.data.rows.length; i++) {
-			const row = result.data.rows[i];
-			const keyRaw = decodeCell(row.key) || decodeCell(row.id);
-			const key = Number(keyRaw);
-			if (Number.isFinite(key) && key > 0) {
-				const tag = rowToRawTag(row, key);
-				map.set(key, tag.code);
+		for (const row of result.rows) {
+			if (row.key > 0) {
+				const tag = rowToRawTag(row);
+				map.set(row.key, tag.code);
 			}
 		}
 		return map;
@@ -453,13 +384,11 @@ export class PoudbRecipeRepository extends RecipeRepository {
 			const trimmed = String(code).trim().toUpperCase();
 			if (!trimmed) continue;
 
-			const searchResult = await this.client.search(TAGS_TABLE, 'code', trimmed, TAG_FIELD_ORDER);
-			if (searchResult.data.rows.length > 0) {
-				const row = searchResult.data.rows[0];
-				const keyRaw = decodeCell(row.key) || decodeCell(row.id);
-				const key = Number(keyRaw);
-				if (Number.isFinite(key) && key > 0) {
-					keys.push(key);
+			const searchResult = await this.client.search(TAGS_TABLE, 'code', trimmed, { schema: TAG_SCHEMA });
+			if (searchResult.rows.length > 0) {
+				const row = searchResult.rows[0];
+				if (row.key > 0) {
+					keys.push(row.key);
 					continue;
 				}
 			}
@@ -478,12 +407,12 @@ export class PoudbRecipeRepository extends RecipeRepository {
 	async fetchIngredientsByKeys(keys) {
 		if (keys.length === 0) return [];
 		const results = await Promise.all(
-			keys.map((k) => this.client.get(INGREDIENTS_TABLE, k, INGREDIENT_FIELD_ORDER))
+			keys.map((k) => this.client.get(INGREDIENTS_TABLE, k, { schema: INGREDIENT_SCHEMA }))
 		);
 		return results
-			.map((result, i) => {
-				if (result.data.rows.length === 0) return null;
-				return rowToRawIngredient(result.data.rows[0], keys[i]);
+			.map((result) => {
+				if (result.rows.length === 0) return null;
+				return rowToRawIngredient(result.rows[0]);
 			})
 			.filter((r) => r !== null);
 	}
@@ -499,12 +428,12 @@ export class PoudbRecipeRepository extends RecipeRepository {
 		}
 
 		await this.ensureSchema();
-		const tableResult = await this.client.get(RECIPE_TABLE, key, RECIPE_FIELD_ORDER);
-		if (tableResult.data.rows.length === 0) {
+		const tableResult = await this.client.get(RECIPE_TABLE, key, { schema: RECIPE_SCHEMA });
+		if (tableResult.rows.length === 0) {
 			return null;
 		}
 
-		const raw = rowToRawRecipe(tableResult.data.rows[0], key);
+		const raw = rowToRawRecipe(tableResult.rows[0]);
 		if (raw.flux_id.toLowerCase() !== id.toLowerCase()) {
 			return null;
 		}
@@ -520,11 +449,10 @@ export class PoudbRecipeRepository extends RecipeRepository {
 		await this.ensureSchema();
 		const [tagsMap, result] = await Promise.all([
 			this.getAllTagsMap(),
-			this.client.getAll(RECIPE_TABLE, RECIPE_FIELD_ORDER)
+			this.client.getAll(RECIPE_TABLE, { schema: RECIPE_SCHEMA })
 		]);
-		return result.data.rows.map((row, index) => {
-			const keyCandidate = Number(decodeCell(row.key) || decodeCell(row.id) || index + 1);
-			const raw = rowToRawRecipe(row, Number.isFinite(keyCandidate) ? keyCandidate : index + 1);
+		return result.rows.map((row) => {
+			const raw = rowToRawRecipe(row);
 			return toSummary(raw, tagsMap);
 		});
 	}
