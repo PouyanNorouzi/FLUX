@@ -22,12 +22,12 @@
 		"@tailwindcss/forms": "^0.5.11",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.2.4",
-		"@types/node": "^24.12.2",
+		"@types/node": "^24.12.3",
 		"eslint": "^9.39.4",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.17.1",
 		"globals": "^17.6.0",
-		"poudb-client": "^0.4.0",
+		"poudb-client": "^0.5.0",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^3.5.1",
 		"prettier-plugin-tailwindcss": "^0.7.4",
@@ -35,7 +35,7 @@
 		"svelte-check": "^4.4.8",
 		"tailwindcss": "^4.2.4",
 		"typescript": "^5.9.3",
-		"vite": "^7.3.2"
+		"vite": "^7.3.3"
 	},
 	"packageManager": "pnpm@10.33.3+sha512.a19744364a7e248b92657a4ca5973f9354d21caf982579674b1c539f32c7420c47138ad8b1254df07aba9bc782d9b3029e3db34d5dbff974326eb74dac8ff489"
 }
