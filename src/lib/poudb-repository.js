@@ -5,8 +5,9 @@
  * poudb-client.
  *
  * Schema (V3 — three normalized tables):
- *   recipes     — title, modified_hex, yield_label, time_minutes, steps (string[]),
+ *   recipes     — title, yield_label, time_minutes, steps (string[]),
  *                 ingredient_keys (int[]), tag_keys (int[])
+ *                 time_updated — auto-managed by the DB
  *   ingredients — qty, unit, name, note  (per-recipe rows, cascade-deleted)
  *   tags        — code                   (shared taxonomy, never deleted)
  */
@@ -30,12 +31,9 @@ const INGREDIENTS_TABLE = process.env.POUDB_INGREDIENTS_TABLE ?? 'ingredients';
 const TAGS_TABLE = process.env.POUDB_TAGS_TABLE ?? 'tags';
 const POUDB_HOST = process.env.POUDB_HOST ?? '127.0.0.1';
 const POUDB_PORT = Number(process.env.POUDB_PORT ?? '3005');
-const HARDCODED_MODIFIED_HEX = '1698742A';
-
 /** @type {import('poudb-client').SchemaField[]} */
 const RECIPE_SCHEMA = [
 	{ type: 'string', name: 'title' },
-	{ type: 'string', name: 'modified_hex' },
 	{ type: 'string', name: 'yield_label' },
 	{ type: 'int', name: 'time_minutes' },
 	{ type: 'string[]', name: 'steps' },
@@ -75,7 +73,7 @@ const TAG_SCHEMA = [{ type: 'string', name: 'code' }];
  * @typedef {{
  * 	flux_id: string,
  * 	title: string,
- * 	modified_hex: string,
+ * 	time_updated: number,
  * 	yield_label: string,
  * 	time_minutes: number,
  * 	ingredient_keys: number[],
@@ -142,7 +140,7 @@ function rowToRawRecipe(row) {
 	return {
 		flux_id: keyToFluxId(/** @type {number} */ (row.key)),
 		title: String(row.title || ''),
-		modified_hex: String(row.modified_hex || HARDCODED_MODIFIED_HEX),
+		time_updated: Number(row.time_updated || 0),
 		yield_label: String(row.yield_label || ''),
 		time_minutes: Number(row.time_minutes || 0),
 		ingredient_keys: /** @type {number[]} */ (row.ingredient_keys) ?? [],
@@ -213,7 +211,7 @@ function toSummary(raw, tagsMap) {
 			.map((k) => tagsMap.get(k) ?? '')
 			.filter(Boolean)
 			.map(bracketTag),
-		ts: raw.modified_hex
+		ts: String(raw.time_updated)
 	};
 }
 
@@ -227,7 +225,7 @@ function toDetail(raw, rawIngredients, tagsMap) {
 	return {
 		id: raw.flux_id,
 		title: raw.title,
-		updatedHex: raw.modified_hex,
+		updatedHex: String(raw.time_updated),
 		timeLabel: `${raw.time_minutes} MINS`,
 		yieldLabel: raw.yield_label,
 		categories: raw.tag_keys.map((k) => tagsMap.get(k) ?? '').filter(Boolean),
@@ -540,7 +538,6 @@ export class PoudbRecipeRepository extends RecipeRepository {
 
 			const key = await this.client.add(RECIPE_TABLE, '*', [
 				input.title,
-				HARDCODED_MODIFIED_HEX,
 				input.yieldLabel,
 				Number(input.timeMinutes),
 				steps,
@@ -596,7 +593,6 @@ export class PoudbRecipeRepository extends RecipeRepository {
 
 			await this.client.up(RECIPE_TABLE, key, [
 				input.title,
-				HARDCODED_MODIFIED_HEX,
 				input.yieldLabel,
 				Number(input.timeMinutes),
 				steps,
