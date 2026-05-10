@@ -1,6 +1,7 @@
 import { redirect, fail } from '@sveltejs/kit';
 import { PoudbClient, ServerMessageError } from 'poudb-client';
 import { encrypt } from '$lib/cookie-crypto.server.js';
+import { POUDB_KEY } from '$env/static/private';
 
 function resolveDatabasePort() {
 	const parsed = Number(process.env.POUDB_PORT ?? '3005');
@@ -11,16 +12,59 @@ function resolveDatabasePort() {
 export async function load({ locals, url }) {
 	const error = url.searchParams.get('error') ?? null;
 	if (error) {
-		return { error };
+		return { error, hasEnvKey: !!POUDB_KEY };
 	}
 	if (locals.token) {
 		redirect(303, '/vault');
 	}
-	return {};
+	return { hasEnvKey: !!POUDB_KEY };
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+	authenticateWithEnvKey: async ({ cookies }) => {
+		const passkey = POUDB_KEY ?? '';
+
+		if (!passkey) {
+			return fail(400, { code: 'EMPTY_TOKEN' });
+		}
+
+		const client = new PoudbClient({
+			host: process.env.POUDB_HOST ?? '127.0.0.1',
+			port: resolveDatabasePort()
+		});
+
+		try {
+			await client.connect();
+			await client.auth(passkey);
+		} catch (error) {
+			if (error instanceof ServerMessageError) {
+				return fail(401, { code: 'INVALID_TOKEN' });
+			}
+			return fail(503, { code: 'DB_UNAVAILABLE' });
+		} finally {
+			try {
+				await client.disconnect();
+			} catch {
+				// best-effort disconnect
+			}
+		}
+		try {
+			const token = encrypt(passkey);
+			cookies.set('poudb_token', token, {
+				path: '/',
+				httpOnly: true,
+				sameSite: 'strict',
+				secure: false
+			});
+		} catch (error) {
+			console.error(error);
+			return fail(400, { code: 'ENCRYPT_FAILED' });
+		}
+		
+		redirect(303, '/vault');
+	},
+
 	authenticate: async ({ request, cookies }) => {
 		const formData = await request.formData();
 		const passkey = String(formData.get('passkey') ?? '').trim();

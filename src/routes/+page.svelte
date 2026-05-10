@@ -40,6 +40,43 @@
 	}
 
 	/** @type {import('@sveltejs/kit').SubmitFunction} */
+	function handleEnvKeyEnhance() {
+		error = false;
+		gateError = '';
+		loading = true;
+		dbStatus = 'checking';
+
+		return async ({ result, update }) => {
+			if (result.type === 'redirect') {
+				dbStatus = 'online';
+				connected = true;
+				await update();
+				return;
+			}
+
+			loading = false;
+
+			if (result.type === 'failure') {
+				const code = result.data?.code;
+				if (code === 'INVALID_TOKEN' || code === 'EMPTY_TOKEN' || code === 'ENCRYPT_FAILED') {
+					dbStatus = 'online';
+					error = true;
+				} else {
+					dbStatus = 'offline';
+					gateError = mapRepositoryErrorToMessage(
+						code,
+						'Database is currently unreachable. Verify Poudb is online and try again.'
+					);
+				}
+				return;
+			}
+
+			dbStatus = 'offline';
+			gateError = 'An unexpected error occurred. Please try again.';
+		};
+	}
+
+	/** @type {import('@sveltejs/kit').SubmitFunction} */
 	function handleEnhance() {
 		if (!passkey.trim()) {
 			error = true;
@@ -52,6 +89,7 @@
 		dbStatus = 'checking';
 
 		return async ({ result, update }) => {
+			console.log(result);
 			if (result.type === 'redirect') {
 				dbStatus = 'online';
 				connected = true;
@@ -132,7 +170,7 @@
 			<form
 				method="POST"
 				action="?/authenticate"
-				class="flex flex-col gap-6 p-6 md:p-8"
+				class="flex flex-col gap-6 p-6 pb-2 md:p-8 md:pb-2"
 				use:enhance={handleEnhance}
 			>
 				<Input
@@ -154,6 +192,24 @@
 				{/if}
 				<Button type="submit" {loading} icon="database">[ WRITE TO POUDB ]</Button>
 			</form>
+			{#if data.hasEnvKey}
+				<div class="px-6 pb-6 pt-2 md:px-8 md:pb-8 md:pt-2">
+					<form
+						method="POST"
+						action="?/authenticateWithEnvKey"
+					use:enhance={handleEnvKeyEnhance}
+					>
+						<div class="group relative">
+							<Button variant="secondary" type="submit" {loading} icon="vpn_key">[ USE ENV KEY ]</Button>
+							<div
+								class="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden w-64 -translate-x-1/2 border-2 border-signal-black bg-cold-console-white px-3 py-2 font-mono text-[10px] leading-relaxed text-signal-black uppercase shadow-hard group-hover:block"
+							>
+								This option is available because a key was pre-configured on the server.
+							</div>
+						</div>
+					</form>
+				</div>
+			{/if}
 		{:else}
 			<!-- CONN_ESTABLISHED panel -->
 			<div class="flex flex-col gap-4 p-6 md:p-8">
